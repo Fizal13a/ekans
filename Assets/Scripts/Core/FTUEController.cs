@@ -17,13 +17,6 @@ public class FTUEController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI dialogueText;
     [SerializeField] private RectTransform tapToContinueHint; 
 
-    [Header("Time Settings")]
-    [Tooltip("How slow time gets while a dialogue is showing (0 = fully paused, 1 = normal).")]
-    [Range(0.01f, 1f)] [SerializeField] private float slowTimeScale = 0.05f;
-
-    [Tooltip("How long the slow-down / speed-up transition takes, in real (unscaled) seconds.")]
-    [SerializeField] private float timeTransitionDuration = 0.5f;
-
     [Header("Juice Settings")]
     [SerializeField] private float popInDuration = 0.35f;
     [SerializeField] private float popOutDuration = 0.25f;
@@ -57,8 +50,8 @@ public class FTUEController : MonoBehaviour
     private Tween timeScaleTween;
     private Sequence panelSequence;
     private Tween hintPulseTween;
-
-    private const float DefaultFixedDelta = 0.02f;
+    
+    #region Initialize
 
     private void Awake()
     {
@@ -73,12 +66,22 @@ public class FTUEController : MonoBehaviour
             dialoguePanel.SetActive(false);
     }
 
-    private void Start()
+    private void OnEnable()
     {
+        GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, StartingFTUE);
+    }
+
+    private void StartingFTUE()
+    {
+        //TO DO : player prefs for FTUE completion
         ShowFTUE(startMessage, ref hasShownStart, force: true);
         SFXManager.instance.PlayFTUE();
     }
 
+    #endregion
+
+    #region Actions
+    
     /// <summary>
     /// Call this whenever the player collects/eats a food item.
     /// </summary>
@@ -129,8 +132,13 @@ public class FTUEController : MonoBehaviour
             panelRect.DOPunchScale(Vector3.one * 0.08f, 0.15f, 6, 0.8f).SetUpdate(true);
 
         PlayPopOut();
-        StartTimeScaleTransition(1f, () => IsInFTUE = false);
+        IsInFTUE = false;
+        GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStopped, false);
     }
+
+    #endregion
+
+    #region FTUEWindowControl
 
     private void ShowFTUE(string message, ref bool alreadyShownFlag, bool force = false)
     {
@@ -144,9 +152,14 @@ public class FTUEController : MonoBehaviour
         IsInFTUE = true;
 
         PlayPopIn();
-        StartTimeScaleTransition(slowTimeScale);
+        IsInFTUE = true;
+        GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
         StartHintPulse();
     }
+    
+    #endregion
+
+    #region Animate Panel
 
     // ---------- DOTween juice ----------
 
@@ -213,23 +226,9 @@ public class FTUEController : MonoBehaviour
             tapToContinueHint.localScale = Vector3.one;
     }
 
-    // ---------- Time scale ----------
+    #endregion
 
-    private void StartTimeScaleTransition(float target, Action onComplete = null)
-    {
-        timeScaleTween?.Kill();
-
-        // DOVirtual.Float lets us ease a plain float over unscaled time (SetUpdate(true))
-        // and drive Time.timeScale ourselves each step.
-        timeScaleTween = DOVirtual.Float(Time.timeScale, target, timeTransitionDuration, value =>
-            {
-                Time.timeScale = value;
-                Time.fixedDeltaTime = DefaultFixedDelta * value;
-            })
-            .SetEase(Ease.InOutSine)
-            .SetUpdate(true)
-            .OnComplete(() => onComplete?.Invoke());
-    }
+    #region Terminate
 
     private void OnDestroy()
     {
@@ -237,11 +236,8 @@ public class FTUEController : MonoBehaviour
         timeScaleTween?.Kill();
         panelSequence?.Kill();
         hintPulseTween?.Kill();
-
-        if (Instance == this)
-        {
-            Time.timeScale = 1f;
-            Time.fixedDeltaTime = DefaultFixedDelta;
-        }
     }
+
+    #endregion
+  
 }

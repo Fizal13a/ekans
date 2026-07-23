@@ -53,11 +53,22 @@ public class CameraController : MonoBehaviour
     private Vector3 lastTargetForward;
     private float currentBank;
 
-    private void Start()
+    #region Initialize
+
+    private void OnEnable()
+    {
+        GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
+    }
+
+    private void Initialize()
     {
         currentHeight = minHeight;
         lastTargetForward = target.forward;
     }
+
+    #endregion
+
+    #region Update
 
     private void LateUpdate()
     {
@@ -115,6 +126,10 @@ public class CameraController : MonoBehaviour
         transform.rotation = Quaternion.Euler(euler.x, euler.y, currentBank);
     }
 
+    #endregion
+
+    #region Effects
+
     /// <summary>Call this whenever food is eaten for a quick shake + zoom punch.</summary>
     public void ShakeOnEat()
     {
@@ -169,9 +184,16 @@ public class CameraController : MonoBehaviour
             .Append(DOTween.To(() => zoomKick, x => zoomKick = x, 0f, zoomKickDuration * 0.6f).SetEase(Ease.OutElastic));
     }
 
+    #endregion
+
+    #region Terminate
+
     private void OnDestroy()
     {
         shakeTween?.Kill();
         zoomKickSequence?.Kill();
     }
+
+    #endregion
+    
 }

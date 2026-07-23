@@ -9,13 +9,19 @@ using Random = UnityEngine.Random;
 [RequireComponent(typeof(CharacterController))]
 public class SnakeHeadController : MonoBehaviour
 {
+    [Header("References")]
     SnakeInputs snakeInputs;
     [SerializeField] Animator characterAnimator;
     [SerializeField] private GameObject playerHeadVisual;
-    
     [SerializeField] private SnakeBodyController snakeBodyController;
     [SerializeField] private FoodSpawner foodSpawner;
     
+    [Header("Bool")]
+    bool isMoving = false;
+    bool canCollide = false;
+    bool isGameStarted = false;
+    
+    [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField] private float rotationSpeed = 15f;
 
@@ -38,41 +44,32 @@ public class SnakeHeadController : MonoBehaviour
     
     public static event Action OnAteAFood;
     
-    bool isMoving = false;
 
     private Tweener bendTween;
+
+    #region Initialize
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-        
         snakeInputs  = new SnakeInputs();
     }
 
     private void OnEnable()
     {
+        GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, InitializeHead);
+
         snakeInputs.Enable();
         snakeInputs.Snake.Turn.performed += OnTurn;
         snakeInputs.Snake.Turn.canceled += OnTurn;
     }
-
-    private void OnDisable()
-    {
-        snakeInputs.Snake.Turn.performed -= OnTurn;
-        snakeInputs.Snake.Turn.canceled -= OnTurn;
-        snakeInputs.Disable();
-
-        bendTween?.Kill();
-    }
-
-    private void Start()
+    
+    private void InitializeHead()
     {
         origionalSpeed = moveSpeed;
         StartCoroutine(EnableCollision());
     }
-
-    bool canCollide = false;
-    bool isGameStarted = false;
+    
     IEnumerator EnableCollision()
     {
         characterAnimator.speed = 0;
@@ -81,6 +78,10 @@ public class SnakeHeadController : MonoBehaviour
         canCollide = true;
         isGameStarted = true;
     }
+
+    #endregion
+
+    #region Inputs
 
     private void OnTurn(InputAction.CallbackContext ctx)
     {
@@ -114,6 +115,10 @@ public class SnakeHeadController : MonoBehaviour
         AnimateHeadBend();
     }
 
+    #endregion
+
+    #region Animations
+
     private void AnimateHeadBend()
     {
         if (playerHeadVisual == null)
@@ -129,6 +134,10 @@ public class SnakeHeadController : MonoBehaviour
             .SetEase(bendEase);
     }
 
+    #endregion
+
+    #region Update
+
     private void Update()
     {
         if(isGameOver || !isGameStarted) return;
@@ -136,7 +145,11 @@ public class SnakeHeadController : MonoBehaviour
         Rotate();
         MoveForward();
     }
-    
+
+    #endregion
+
+    #region Actions
+
     private void Rotate()
     {
         transform.Rotate(
@@ -151,7 +164,11 @@ public class SnakeHeadController : MonoBehaviour
             moveSpeed *
             Time.deltaTime);
     }
-    
+
+    #endregion
+
+    #region GameOver
+
     public void GameOver()
     {
         if (isGameOver)
@@ -182,6 +199,10 @@ public class SnakeHeadController : MonoBehaviour
  
         snakeBodyController.TriggerGameOver();
     }
+
+    #endregion
+
+    #region Collision
 
     private void OnTriggerEnter(Collider other)
     {
@@ -233,6 +254,8 @@ public class SnakeHeadController : MonoBehaviour
         }
     }
 
+    #endregion
+    
     #region Chaos
 
     private float origionalSpeed;
@@ -268,6 +291,19 @@ public class SnakeHeadController : MonoBehaviour
     public void Inverse()
     {
         inverse = true;
+    }
+
+    #endregion
+
+    #region Terminate
+
+    private void OnDisable()
+    {
+        snakeInputs.Snake.Turn.performed -= OnTurn;
+        snakeInputs.Snake.Turn.canceled -= OnTurn;
+        snakeInputs.Disable();
+
+        bendTween?.Kill();
     }
 
     #endregion

@@ -16,15 +16,24 @@ public class SnakeBodyController : MonoBehaviour
     [Header("Starting Snake")]
     [SerializeField] private List<SnakeSegment> availableFoodSegments;
     [SerializeField] private int startingLength = 5;
-    
-    [Header("Body Limit")]
-    [SerializeField] private int maxBodyLength = 50;
-    public int MaxBodyLength => maxBodyLength;
 
     [Header("Movement")]
     [SerializeField] private float followSpeed = 2f;
     [SerializeField] private float recordDistance = 0.2f;
     [SerializeField] private int pointsPerSegment = 5;
+    
+    [Header("Food Data")]
+    int foodCount = 0;
+    private int maxFood = 10;
+    private int score = 0;
+    
+    [Header("Snake Stats")]
+    private int level = 1;
+    [SerializeField] private int maxBodyLength = 50;
+    public int MaxBodyLength => maxBodyLength;
+    
+    [Header("Bool")]
+    private bool gameOver;
 
     [Header("Polish / Juice")]
     [SerializeField] private float segmentSpawnDuration = 0.35f;
@@ -54,7 +63,14 @@ public class SnakeBodyController : MonoBehaviour
 
     private Vector3 lastRecordedPosition;
 
-    private void Start()
+    #region Initialization
+    
+    private void OnEnable()
+    {
+       GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
+    }
+
+    private void Initialize()
     {
         lastRecordedPosition = head.position;
 
@@ -69,7 +85,7 @@ public class SnakeBodyController : MonoBehaviour
         UpdateBodyLimitUI();
         CheckAndSpawnSegmentsRoutine =  StartCoroutine(CheckAndSpawnSegments());
     }
-
+    
     IEnumerator CheckAndSpawnSegments()
     {
         while (canAddSegments)
@@ -87,13 +103,38 @@ public class SnakeBodyController : MonoBehaviour
             FTUEController.Instance.OnFoodAdded();
         }
     }
+    
+    void SpawnStartingSnake()
+    {
+        List<SnakeSegment> available = new List<SnakeSegment>(availableFoodSegments);
+
+        AddSegment(available[0], animateSpawn: false);
+        
+        for (int i = 1; i < startingLength && available.Count > 0; i++)
+        {
+            int randomIndex = Random.Range(0, available.Count);
+
+            // Starting segments appear instantly - no pop-in on scene load
+            AddSegment(available[randomIndex], animateSpawn: false);
+
+            available.RemoveAt(randomIndex);
+        }
+
+        foodSpawner.HighlightFoodsOfType(segments[0].FoodType);
+        Debug.Log(segments[0].FoodType.ToString());
+        UpdateBody();
+    }
+
+    #endregion
+
+    #region Update
 
     private void LateUpdate()
     {
         UpdatePath();
         UpdateBody();
     }
-
+    
     void UpdatePath()
     {
         if (Vector3.Distance(lastRecordedPosition, head.position) < recordDistance)
@@ -134,26 +175,11 @@ public class SnakeBodyController : MonoBehaviour
         }
     }
 
-    void SpawnStartingSnake()
-    {
-        List<SnakeSegment> available = new List<SnakeSegment>(availableFoodSegments);
+    #endregion
 
-        AddSegment(available[0], animateSpawn: false);
-        
-        for (int i = 1; i < startingLength && available.Count > 0; i++)
-        {
-            int randomIndex = Random.Range(0, available.Count);
-
-            // Starting segments appear instantly - no pop-in on scene load
-            AddSegment(available[randomIndex], animateSpawn: false);
-
-            available.RemoveAt(randomIndex);
-        }
-
-        foodSpawner.HighlightFoodsOfType(segments[0].FoodType);
-        Debug.Log(segments[0].FoodType.ToString());
-        UpdateBody();
-    }
+    #region Segment Management
+    
+    //ADD
 
     public void AddEatenSegment(SnakeSegment segment)
     {
@@ -177,15 +203,7 @@ public class SnakeBodyController : MonoBehaviour
             AddSegment(availableFoodSegments[randomIndex], animateSpawn: false);
         }
     }
-
-    public void RemoveSegments(int count)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            RemoveSegment(segments.Count - 1);
-        }
-    }
-
+    
     public void AddSegment(SnakeSegment food, bool animateSpawn = true)
     {
         cameraController.ShakeOnSegmentAdded();
@@ -199,23 +217,14 @@ public class SnakeBodyController : MonoBehaviour
             AnimateSegmentSpawn(segment.transform);
     }
     
-    public void AddSegment(Food food)
+    //REMOVE
+
+    public void RemoveSegments(int count)
     {
-        SnakeSegment segment = Instantiate(food.bodyPrefab, bodyRoot);
-        segments.Add(segment);
-
-        AnimateSegmentSpawn(segment.transform);
-    }
-
-    private void AnimateSegmentSpawn(Transform segmentTransform)
-    {
-        Vector3 targetScale = segmentTransform.localScale;
-
-        segmentTransform.DOKill();
-        segmentTransform.localScale = Vector3.zero;
-        segmentTransform
-            .DOScale(targetScale, segmentSpawnDuration)
-            .SetEase(segmentSpawnEase);
+        for (int i = 0; i < count; i++)
+        {
+            RemoveSegment(segments.Count - 1);
+        }
     }
 
     public void RemoveSegment(int index)
@@ -229,7 +238,28 @@ public class SnakeBodyController : MonoBehaviour
         AnimateSegmentRemoval(segment);
         UpdateBodyLimitUI();
     }
+    
+    public void RemoveSegment()
+    {
+        RemoveSegment(0);
+        OnAteFood();
+        
+        uimanager.PopUpDestroyedSegments(1);
+    }
+    
+    //ANIMATE
+    
+    private void AnimateSegmentSpawn(Transform segmentTransform)
+    {
+        Vector3 targetScale = segmentTransform.localScale;
 
+        segmentTransform.DOKill();
+        segmentTransform.localScale = Vector3.zero;
+        segmentTransform
+            .DOScale(targetScale, segmentSpawnDuration)
+            .SetEase(segmentSpawnEase);
+    }
+    
     private void AnimateSegmentRemoval(SnakeSegment segment)
     {
         Transform t = segment.transform;
@@ -243,37 +273,11 @@ public class SnakeBodyController : MonoBehaviour
                     Destroy(segment.gameObject);
             });
     }
-
-    public void RemoveSegment()
-    {
-        RemoveSegment(0);
-        OnAteFood();
-        
-        uimanager.PopUpDestroyedSegments(1);
-    }
     
-    public void RemoveAllSegments(FoodType foodType)
-    {
-        int destroyedSegments = 0;
-        
-        for (int i = segments.Count - 1; i >= 0; i--)
-        {
-            if (segments[i].FoodType == foodType)
-            {
-                RemoveSegment(i);
-                OnAteFood();
-                destroyedSegments++;
-            }
-        }
-        
-        uimanager.PopUpDestroyedSegments(destroyedSegments);
-    }
+    #endregion
 
-    int foodCount = 0;
-    private int level = 1;
-    private int maxFoodBeforeGolderBurger = 10;
-    private int score = 0;
-    
+    #region Actions
+
     public void OnAteFood()
     {
         foodCount++;
@@ -288,7 +292,7 @@ public class SnakeBodyController : MonoBehaviour
         head.localScale = Vector3.one;
         head.DOPunchScale(Vector3.one * eatPunchScale, eatPunchDuration, vibrato: 6, elasticity: 0.7f);
 
-        if (foodCount >= maxFoodBeforeGolderBurger)
+        if (foodCount >= maxFood)
         {
             level++;
             if(segments.Count > 10)
@@ -307,9 +311,13 @@ public class SnakeBodyController : MonoBehaviour
             Debug.Log("Level Up");
         }
         
-        float levelValue = foodCount / (float)maxFoodBeforeGolderBurger;
+        float levelValue = foodCount / (float)maxFood;
         uimanager.IncrementLevel(level, levelValue);
     }
+
+    #endregion
+
+    #region Helpers
 
     public bool IsTheTargetFood(FoodType foodType)
     {
@@ -322,26 +330,11 @@ public class SnakeBodyController : MonoBehaviour
         if (segments.Count == 0) return FoodType.Apple;
         return segments[0].FoodType;
     }
-    
-    public bool ContainsFood(FoodType type)
-    {
-        foreach(var segment in segments)
-        {
-            if(segment.FoodType == type)
-                return true;
-        }
 
-        return false;
-    }
+    #endregion
 
-    public void RemoveLastSegment()
-    {
-        if (segments.Count == 0)
-            return;
+    #region UI
 
-        RemoveSegment(segments.Count - 1);
-    }
-    
     private void UpdateBodyLimitUI()
     {
         float percentage = segments.Count / (float)maxBodyLength;
@@ -354,9 +347,11 @@ public class SnakeBodyController : MonoBehaviour
             TriggerGameOver();
         }
     }
-    
-    private bool gameOver;
-    
+
+    #endregion
+
+    #region Game Over
+
     public void TriggerGameOver()
     {
         if (gameOver)
@@ -391,6 +386,10 @@ public class SnakeBodyController : MonoBehaviour
         uimanager.GameOver(score);
     }
 
+    #endregion
+
+    #region Terminate
+
     private void OnDestroy()
     {
         // Prevent DOTween callbacks firing on destroyed objects during scene teardown
@@ -401,4 +400,9 @@ public class SnakeBodyController : MonoBehaviour
                 DOTween.Kill(segment.transform);
         }
     }
+
+    #endregion
+    
+
+    
 }

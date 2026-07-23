@@ -7,8 +7,16 @@ public class GameEvents
     public enum EventType
     {
         OnGameStart,
-        OnPickUpFood,
-        OnLevelUp
+        OnFTUEStarted,
+        OnFTUEStopped,
+        OnAteRightFood,
+        OnAteWrongFood,
+        OnNewSegmentAdded,
+        OnSegmentRemoved,
+        OnLevelUp,
+        OnPowerUpSelected,
+        OnPowerUpCompleted,
+        OnGameOver
     }
     
     private Dictionary<EventType, List<Delegate>> events =
