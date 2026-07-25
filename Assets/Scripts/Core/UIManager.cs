@@ -39,7 +39,23 @@ public class UIManager : MonoBehaviour
     [SerializeField] private float timerPopDuration = 0.2f;
     [SerializeField] private float timerPulseScale = 1.15f;
     [SerializeField] private float timerPulseDuration = 0.25f;
+    
+    [Header("Countdown")] [SerializeField] private GameObject counterObject;
+    [SerializeField] private TMP_Text counterText; // the TMP child on counterObject
+    [SerializeField] private float countdownStepDuration = 1f;
+    [SerializeField] private float countdownPunchScale = 0.4f;
+    
+    [Header("Body Limit Bar")] [SerializeField]
+    private Image bodyLimitFill;
 
+    [SerializeField] private Gradient bodyLimitGradient;
+    [SerializeField] private RectTransform barContainer; // parent rect of the fill bar, for punch/shake
+    [SerializeField] private Image flashOverlay; // thin white image over the fill, alpha 0 by default
+    [SerializeField] private float dangerThreshold = 0.85f; // when the bar starts "warning" pulsing
+
+    private Tween fillTween;
+    private Tween punchTween;
+    private Tween dangerPulseTween;
 
     [Header("Polish / Juice")] [SerializeField]
     private float levelBarFillDuration = 0.3f;
@@ -69,6 +85,19 @@ public class UIManager : MonoBehaviour
     private Sequence timerPulseSequence;
     private bool timerActive;
     private bool timerDangerPulseStarted;
+    
+    #region Initialize
+
+    private void OnEnable()
+    {
+        GameManager.events.AddEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateBodyLimitBar);
+        GameManager.events.AddEvent<int>(GameEvents.EventType.OnGameOverPanelTrigger, GameOver);
+        GameManager.events.AddEvent(GameEvents.EventType.OnSegmentRemoved, PopUpDestroyedSegments);
+    }
+
+    #endregion
+
+    #region Level
 
     public void IncrementLevel(int level, float value)
     {
@@ -87,6 +116,10 @@ public class UIManager : MonoBehaviour
                 elasticity: 0.8f);
         }
     }
+
+    #endregion
+
+    #region PowerUp
 
     public void OpenPowerUpPanel(bool canShowNegative)
     {
@@ -130,35 +163,7 @@ public class UIManager : MonoBehaviour
                 chaosCard.transform.DOScale(Vector3.one, panelOpenDuration).SetEase(Ease.OutBack));
         }
     }
-
-    public void PopUpDestroyedSegments(int amount)
-    {
-        foreach (TextMeshProUGUI popUp in segmentMultiplyPopUps)
-        {
-            if (popUp != null && !popUp.gameObject.activeInHierarchy)
-            {
-                popUp.gameObject.SetActive(true);
-                popUp.text = $"x{amount}";
-
-                popUp.transform.DOKill();
-                popUp.DOKill();
-
-                Color c = popUp.color;
-                c.a = 1f;
-                popUp.color = c;
-                popUp.transform.localScale = Vector3.zero;
-
-                DOTween.Sequence()
-                    .Append(popUp.transform.DOScale(Vector3.one, popUpScaleDuration).SetEase(Ease.OutBack))
-                    .AppendInterval(popUpHoldDuration)
-                    .Append(popUp.DOFade(0f, popUpFadeOutDuration))
-                    .OnComplete(() => { popUp.gameObject.SetActive(false); });
-
-                return;
-            }
-        }
-    }
-
+    
     public void ClosePowerUpPanel(ChaosType chaosType)
     {
         panelSequence?.Kill();
@@ -183,43 +188,7 @@ public class UIManager : MonoBehaviour
                 });
             });
     }
-
-    [Header("Countdown")] [SerializeField] private GameObject counterObject;
-    [SerializeField] private TMP_Text counterText; // the TMP child on counterObject
-    [SerializeField] private float countdownStepDuration = 1f;
-    [SerializeField] private float countdownPunchScale = 0.4f;
-
-    private void PlayCountdown(int from, Action onComplete)
-    {
-        counterObject.SetActive(true);
-        counterText.transform.localScale = Vector3.one;
-
-        Sequence countdownSequence = DOTween.Sequence().SetUpdate(true);
-
-        for (int i = from; i >= 1; i--)
-        {
-            int number = i; // capture for closure
-
-            countdownSequence.AppendCallback(() =>
-            {
-                counterText.text = number.ToString();
-                counterText.transform.DOKill();
-                counterText.transform
-                    .DOPunchScale(Vector3.one * countdownPunchScale, countdownStepDuration * 0.5f, vibrato: 4,
-                        elasticity: 0.6f)
-                    .SetUpdate(true);
-            });
-
-            countdownSequence.AppendInterval(countdownStepDuration);
-        }
-
-        countdownSequence.OnComplete(() =>
-        {
-            counterObject.SetActive(false);
-            onComplete?.Invoke();
-        });
-    }                                                                                                                   
-
+    
     public void OnChaosSelected(ChaosCardUI chaosCard)
     {
         SFXManager.instance.PlayChaosSelected();
@@ -264,6 +233,73 @@ public class UIManager : MonoBehaviour
                 break;
         }
     }
+
+    #endregion
+
+    
+
+    public void PopUpDestroyedSegments()
+    {
+        foreach (TextMeshProUGUI popUp in segmentMultiplyPopUps)
+        {
+            if (popUp != null && !popUp.gameObject.activeInHierarchy)
+            {
+                popUp.gameObject.SetActive(true);
+                popUp.text = $"x{1}";
+
+                popUp.transform.DOKill();
+                popUp.DOKill();
+
+                Color c = popUp.color;
+                c.a = 1f;
+                popUp.color = c;
+                popUp.transform.localScale = Vector3.zero;
+
+                DOTween.Sequence()
+                    .Append(popUp.transform.DOScale(Vector3.one, popUpScaleDuration).SetEase(Ease.OutBack))
+                    .AppendInterval(popUpHoldDuration)
+                    .Append(popUp.DOFade(0f, popUpFadeOutDuration))
+                    .OnComplete(() => { popUp.gameObject.SetActive(false); });
+
+                return;
+            }
+        }
+    }
+
+    #region Count Down
+
+     private void PlayCountdown(int from, Action onComplete)
+    {
+        counterObject.SetActive(true);
+        counterText.transform.localScale = Vector3.one;
+
+        Sequence countdownSequence = DOTween.Sequence().SetUpdate(true);
+
+        for (int i = from; i >= 1; i--)
+        {
+            int number = i; // capture for closure
+
+            countdownSequence.AppendCallback(() =>
+            {
+                counterText.text = number.ToString();
+                counterText.transform.DOKill();
+                counterText.transform
+                    .DOPunchScale(Vector3.one * countdownPunchScale, countdownStepDuration * 0.5f, vibrato: 4,
+                        elasticity: 0.6f)
+                    .SetUpdate(true);
+            });
+
+            countdownSequence.AppendInterval(countdownStepDuration);
+        }
+
+        countdownSequence.OnComplete(() =>
+        {
+            counterObject.SetActive(false);
+            onComplete?.Invoke();
+        });
+    }                                                                                                                   
+
+   
 
     public void ShowTimer()
     {
@@ -340,6 +376,11 @@ public class UIManager : MonoBehaviour
                 snakeHeadController.ResetAll();
             });
     }
+
+
+    #endregion
+
+    #region Game Over
 
     public void GameOver(int score)
     {
@@ -426,6 +467,76 @@ public class UIManager : MonoBehaviour
                 element.DOScale(Vector3.one, gameOverPanelPopDuration).SetEase(Ease.OutBack));
         }
     }
+    
+    public void TryAgain()
+    {
+        SceneManager.LoadScene(0);
+    }
+
+    #endregion
+
+    #region Body
+
+    public void UpdateBodyLimitBar(SegmentAddedData data)
+    {
+        float percentage = Mathf.Clamp01(data.Percentage);
+        float previousValue = bodyLimitFill.fillAmount;
+        float delta = percentage - previousValue;
+
+        fillTween?.Kill();
+        punchTween?.Kill();
+
+        // --- Fill + color, same as before ---
+        fillTween = bodyLimitFill
+            .DOFillAmount(percentage, 0.25f)
+            .SetEase(Ease.OutCubic)
+            .OnUpdate(() => { bodyLimitFill.color = bodyLimitGradient.Evaluate(bodyLimitFill.fillAmount); });
+
+        // --- Punch scale on the whole bar, sized by how big the change was ---
+        // Growing = punch up (satisfying "gained something"), shrinking = punch down/in (a hit).
+        if (barContainer != null && Mathf.Abs(delta) > 0.001f)
+        {
+            float punchSize = Mathf.Lerp(0.13f, 0.4f, Mathf.Clamp01(Mathf.Abs(delta) * 3f));
+            Vector3 punch = delta > 0
+                ? new Vector3(punchSize, punchSize, 0f)
+                : new Vector3(-punchSize * 0.6f, -punchSize * 0.6f, 0f);
+
+            barContainer.localScale = Vector3.one;
+            punchTween = barContainer
+                .DOPunchScale(punch, 0.3f, 8, 0.9f)
+                .SetEase(Ease.OutQuad);
+        }
+
+        // --- Quick white flash on the fill itself, for a crisp "impact" moment ---
+        if (flashOverlay != null && Mathf.Abs(delta) > 0.001f)
+        {
+            flashOverlay.DOKill();
+            flashOverlay.color = Color.red;
+            flashOverlay.DOFade(0f, 0.3f).SetEase(Ease.OutCubic);
+        }
+
+        // --- Warning pulse when the bar creeps into danger territory ---
+        bool inDanger = percentage >= dangerThreshold;
+        bool wasInDanger = dangerPulseTween != null && dangerPulseTween.IsActive();
+
+        if (inDanger && !wasInDanger && barContainer != null)
+        {
+            dangerPulseTween = barContainer
+                .DOScale(1.04f, 0.35f)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo);
+        }
+        else if (!inDanger && wasInDanger)
+        {
+            dangerPulseTween.Kill();
+            dangerPulseTween = null;
+            barContainer.localScale = Vector3.one;
+        }
+    }
+
+    #endregion
+
+    #region Terminate
 
     private void OnDestroy()
     {
@@ -466,77 +577,6 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    [Header("Body Limit Bar")] [SerializeField]
-    private Image bodyLimitFill;
-
-    [SerializeField] private Gradient bodyLimitGradient;
-    [SerializeField] private RectTransform barContainer; // parent rect of the fill bar, for punch/shake
-    [SerializeField] private Image flashOverlay; // thin white image over the fill, alpha 0 by default
-    [SerializeField] private float dangerThreshold = 0.85f; // when the bar starts "warning" pulsing
-
-    private Tween fillTween;
-    private Tween punchTween;
-    private Tween dangerPulseTween;
-
-    public void UpdateBodyLimitBar(float value)
-    {
-        value = Mathf.Clamp01(value);
-        float previousValue = bodyLimitFill.fillAmount;
-        float delta = value - previousValue;
-
-        fillTween?.Kill();
-        punchTween?.Kill();
-
-        // --- Fill + color, same as before ---
-        fillTween = bodyLimitFill
-            .DOFillAmount(value, 0.25f)
-            .SetEase(Ease.OutCubic)
-            .OnUpdate(() => { bodyLimitFill.color = bodyLimitGradient.Evaluate(bodyLimitFill.fillAmount); });
-
-        // --- Punch scale on the whole bar, sized by how big the change was ---
-        // Growing = punch up (satisfying "gained something"), shrinking = punch down/in (a hit).
-        if (barContainer != null && Mathf.Abs(delta) > 0.001f)
-        {
-            float punchSize = Mathf.Lerp(0.13f, 0.4f, Mathf.Clamp01(Mathf.Abs(delta) * 3f));
-            Vector3 punch = delta > 0
-                ? new Vector3(punchSize, punchSize, 0f)
-                : new Vector3(-punchSize * 0.6f, -punchSize * 0.6f, 0f);
-
-            barContainer.localScale = Vector3.one;
-            punchTween = barContainer
-                .DOPunchScale(punch, 0.3f, 8, 0.9f)
-                .SetEase(Ease.OutQuad);
-        }
-
-        // --- Quick white flash on the fill itself, for a crisp "impact" moment ---
-        if (flashOverlay != null && Mathf.Abs(delta) > 0.001f)
-        {
-            flashOverlay.DOKill();
-            flashOverlay.color = Color.red;
-            flashOverlay.DOFade(0f, 0.3f).SetEase(Ease.OutCubic);
-        }
-
-        // --- Warning pulse when the bar creeps into danger territory ---
-        bool inDanger = value >= dangerThreshold;
-        bool wasInDanger = dangerPulseTween != null && dangerPulseTween.IsActive();
-
-        if (inDanger && !wasInDanger && barContainer != null)
-        {
-            dangerPulseTween = barContainer
-                .DOScale(1.04f, 0.35f)
-                .SetEase(Ease.InOutSine)
-                .SetLoops(-1, LoopType.Yoyo);
-        }
-        else if (!inDanger && wasInDanger)
-        {
-            dangerPulseTween.Kill();
-            dangerPulseTween = null;
-            barContainer.localScale = Vector3.one;
-        }
-    }
-
-    public void TryAgain()
-    {
-        SceneManager.LoadScene(0);
-    }
+    #endregion
+    
 }

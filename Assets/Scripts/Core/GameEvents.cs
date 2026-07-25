@@ -18,6 +18,7 @@ public class GameEvents
         OnLevelUp,
         OnPowerUpSelected,
         OnPowerUpCompleted,
+        OnGameOverPanelTrigger,
         OnGameOver
     }
     

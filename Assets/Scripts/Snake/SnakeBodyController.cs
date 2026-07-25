@@ -3,6 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
 
+public struct SegmentAddedData
+{
+    public float Percentage;
+    public int SegmentCount;
+    public int MaxBodyLength;
+
+    public SegmentAddedData(float percentage, int segmentCount, int maxBodyLength)
+    {
+        Percentage = percentage;
+        SegmentCount = segmentCount;
+        MaxBodyLength = maxBodyLength;
+    }
+}
+
 public class SnakeBodyController : MonoBehaviour
 {
     [Header("References")]
@@ -80,6 +94,7 @@ public class SnakeBodyController : MonoBehaviour
     {
        GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
        GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
+       GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, TriggerGameOver);
     }
 
     private void Initialize()
@@ -257,7 +272,7 @@ public class SnakeBodyController : MonoBehaviour
         RemoveSegment(0);
         OnAteFood();
         
-        uimanager.PopUpDestroyedSegments(1);
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnSegmentRemoved);
     }
     
     //ANIMATE
@@ -359,13 +374,14 @@ public class SnakeBodyController : MonoBehaviour
     private void UpdateBodyLimitUI()
     {
         float percentage = segments.Count / (float)maxBodyLength;
-        uimanager.UpdateBodyLimitBar(percentage);
-        SFXManager.instance.UpdateMusicPitch(segments.Count, maxBodyLength);
+        GameManager.events.TriggerEvent(
+            GameEvents.EventType.OnNewSegmentAdded,
+            new SegmentAddedData(percentage, segments.Count, maxBodyLength)
+        );
 
         if (segments.Count >= maxBodyLength)
         {
-            snakeHeadController.GameOver();
-            TriggerGameOver();
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
         }
     }
 
@@ -404,7 +420,7 @@ public class SnakeBodyController : MonoBehaviour
                 .Join(t.DORotate(fallAxis * fallAngle, segmentFallDuration, RotateMode.WorldAxisAdd).SetEase(segmentFallEase));
         }
 
-        uimanager.GameOver(score);
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOverPanelTrigger, score);
     }
 
     #endregion

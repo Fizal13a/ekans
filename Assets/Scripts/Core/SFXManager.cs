@@ -34,11 +34,12 @@ public class SFXManager : MonoBehaviour
    private void OnEnable()
    {
       GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, PlayEat);
+      GameManager.events.AddEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateMusicPitch);
    }
 
-   public void UpdateMusicPitch(int segmentCount, int maxBodyLength)
+   public void UpdateMusicPitch(SegmentAddedData data)
    {
-      float t = Mathf.Clamp01((float)segmentCount / maxBodyLength);
+      float t = Mathf.Clamp01((float)data.SegmentCount / data.MaxBodyLength);
       float targetPitch = Mathf.Lerp(minPitch, maxPitch, t);
 
       pitchTween?.Kill();

@@ -58,6 +58,7 @@ public class SnakeHeadController : MonoBehaviour
     private void OnEnable()
     {
         GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, InitializeHead);
+        GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, GameOver);
 
         snakeInputs.Enable();
         snakeInputs.Snake.Turn.performed += OnTurn;
@@ -228,7 +229,7 @@ public class SnakeHeadController : MonoBehaviour
                     if(canIgnoreBodySegment)
                         return;
                     
-                    GameOver();
+                    GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
                 }
                 else
                 {
@@ -240,8 +241,7 @@ public class SnakeHeadController : MonoBehaviour
 
         if (other.gameObject.layer == LayerMask.NameToLayer("Obstacle"))
         {
-            GameOver();
-            snakeBodyController.TriggerGameOver();
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
             Debug.Log("Obstacle - ", other.gameObject);
         }
     }
