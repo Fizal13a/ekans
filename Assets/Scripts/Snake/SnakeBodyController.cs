@@ -324,12 +324,7 @@ public class SnakeBodyController : MonoBehaviour
     {
         foodCount++;
         score += 10;
-        SFXManager.instance.PlaySegmentRemoved();
 
-        // Small punch on the head every time food is eaten.
-        // DOKill(true) completes any in-flight punch first (snapping scale back
-        // to its correct end value) instead of aborting it mid-air - killing
-        // mid-tween is what was leaving the head stuck at a non-1 scale.
         head.DOKill(true);
         head.localScale = Vector3.one;
         head.DOPunchScale(Vector3.one * eatPunchScale, eatPunchDuration, vibrato: 6, elasticity: 0.7f);
@@ -436,6 +431,13 @@ public class SnakeBodyController : MonoBehaviour
             if (segment != null)
                 DOTween.Kill(segment.transform);
         }
+    }
+    
+    private void OnDisable()
+    {
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, Initialize);
+        GameManager.events.RemoveEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, TriggerGameOver);
     }
 
     #endregion

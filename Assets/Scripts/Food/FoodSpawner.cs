@@ -216,6 +216,12 @@ public class FoodSpawner : MonoBehaviour
     {
         StopHighlights();
     }
+    
+    private void OnDisable()
+    {
+        GameManager.events.RemoveEvent<SnakeBodyController>(GameEvents.EventType.OnSnakeInitialized, SpawnInitialFoods);
+        GameManager.events.RemoveEvent<SnakeBodyController>(GameEvents.EventType.OnAteRightFood, SpawnRandomFood);
+    }
 
     #endregion
    

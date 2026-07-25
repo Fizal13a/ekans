@@ -194,6 +194,11 @@ public class CameraController : MonoBehaviour
         shakeTween?.Kill();
         zoomKickSequence?.Kill();
     }
+    private void OnDisable()
+    {
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, Initialize);
+    }
+    
 
     #endregion
     

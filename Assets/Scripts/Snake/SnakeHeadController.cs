@@ -186,7 +186,6 @@ public class SnakeHeadController : MonoBehaviour
             return;
         
         Debug.Log("Game Over");
-        SFXManager.instance.PlayGameOver();
         canCollide = false;
         characterAnimator.SetBool("GameOver", true);
  
@@ -294,6 +293,9 @@ public class SnakeHeadController : MonoBehaviour
         snakeInputs.Snake.Turn.performed -= OnTurn;
         snakeInputs.Snake.Turn.canceled -= OnTurn;
         snakeInputs.Disable();
+        
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, InitializeHead);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, GameOver);
 
         bendTween?.Kill();
     }

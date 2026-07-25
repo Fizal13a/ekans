@@ -15,6 +15,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float timeTransitionDuration = 0.5f;
     private float ftueCloseDelay = 1f;
 
+    #region Initialize
+
     private void OnEnable()
     {
         events.AddEvent<bool>(GameEvents.EventType.OnFTUEStarted, StartTimeScaleTransition);
@@ -25,6 +27,9 @@ public class GameManager : MonoBehaviour
     {
         events.TriggerEvent(GameEvents.EventType.OnGameStart);
     }
+
+    #endregion
+   
 
     #region Time Scale
 
@@ -50,6 +55,16 @@ public class GameManager : MonoBehaviour
             })
             .SetEase(Ease.InOutSine)
             .SetUpdate(true);
+    }
+
+    #endregion
+
+    #region Terminate
+
+    private void OnDisable()
+    {
+        events.RemoveEvent<bool>(GameEvents.EventType.OnFTUEStarted, StartTimeScaleTransition);
+        events.RemoveEvent<bool>(GameEvents.EventType.OnFTUEStopped, StartTimeScaleTransition);
     }
 
     #endregion

@@ -125,7 +125,7 @@ public class UIManager : MonoBehaviour
     {
         Time.timeScale = 0;
 
-        SFXManager.instance.PlayLevelUp();
+        //SFXManager.instance.PlayLevelUp();
         powerUpPanel.SetActive(true);
 
         List<ChaosScriptableObject> availableChaos;
@@ -191,7 +191,7 @@ public class UIManager : MonoBehaviour
     
     public void OnChaosSelected(ChaosCardUI chaosCard)
     {
-        SFXManager.instance.PlayChaosSelected();
+        //SFXManager.instance.PlayChaosSelected();
         ChaosType type = chaosCard.GetChaosObject().chaosType;
         ClosePowerUpPanel(type);
     }
@@ -575,6 +575,13 @@ public class UIManager : MonoBehaviour
                 DOTween.Kill(popUp);
             }
         }
+    }
+    
+    private void OnDisable()
+    {
+        GameManager.events.RemoveEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateBodyLimitBar);
+        GameManager.events.RemoveEvent<int>(GameEvents.EventType.OnGameOverPanelTrigger, GameOver);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnSegmentRemoved, PopUpDestroyedSegments);
     }
 
     #endregion

@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class SFXManager : MonoBehaviour
 {
-   public static SFXManager instance;
-   
    public AudioSource gameBGSource;
    public AudioSource eatSource;
    public AudioSource segmentRemovedSource;
@@ -23,31 +21,20 @@ public class SFXManager : MonoBehaviour
    
    private Tween pitchTween;
 
-   private void Awake()
-   {
-      if (instance == null)
-      {
-         instance = this;
-      }
-   }
+   #region Initialize
 
    private void OnEnable()
    {
+      GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, PlayFTUE);
       GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, PlayEat);
+      GameManager.events.AddEvent(GameEvents.EventType.OnSegmentRemoved, PlaySegmentRemoved);
       GameManager.events.AddEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateMusicPitch);
    }
 
-   public void UpdateMusicPitch(SegmentAddedData data)
-   {
-      float t = Mathf.Clamp01((float)data.SegmentCount / data.MaxBodyLength);
-      float targetPitch = Mathf.Lerp(minPitch, maxPitch, t);
+   #endregion
 
-      pitchTween?.Kill();
-      pitchTween = gameBGSource
-         .DOPitch(targetPitch, pitchTweenDuration)
-         .SetEase(Ease.OutSine);
-   }
-   
+   #region Audio
+
    public void PlayEat()
    {
       eatSource.Play();
@@ -89,4 +76,33 @@ public class SFXManager : MonoBehaviour
       ftueSegmentDissappear.Play();
    }
 
+   #endregion
+
+   #region Pitch
+
+   public void UpdateMusicPitch(SegmentAddedData data)
+   {
+      float t = Mathf.Clamp01((float)data.SegmentCount / data.MaxBodyLength);
+      float targetPitch = Mathf.Lerp(minPitch, maxPitch, t);
+
+      pitchTween?.Kill();
+      pitchTween = gameBGSource
+         .DOPitch(targetPitch, pitchTweenDuration)
+         .SetEase(Ease.OutSine);
+   }
+
+   #endregion
+
+   #region Terminate
+
+   private void OnDisable()
+   {
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, PlayFTUE);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnAteFood, PlayEat);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnSegmentRemoved, PlaySegmentRemoved);
+      GameManager.events.RemoveEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateMusicPitch);
+   }
+
+   #endregion
+   
 }

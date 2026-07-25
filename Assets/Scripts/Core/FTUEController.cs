@@ -77,7 +77,6 @@ public class FTUEController : MonoBehaviour
     {
         //TO DO : player prefs for FTUE completion
         ShowFTUE(startMessage, ref hasShownStart, force: true);
-        SFXManager.instance.PlayFTUE();
     }
 
     #endregion
@@ -107,7 +106,6 @@ public class FTUEController : MonoBehaviour
             {
                 ShowFTUE(eatFollowingMessage, ref hasShownEatFollowing);
                 foodSpawner.StopHighlights();
-                SFXManager.instance.PlayFTUESegmentDissappear();
             }
         }
         else
@@ -115,7 +113,6 @@ public class FTUEController : MonoBehaviour
             if (!hasShownEatNew)
             {
                 ShowFTUE(eatNewMessage, ref hasShownEatNew);
-                SFXManager.instance.PlayFTUEAte();
             }
         }
     }
@@ -249,6 +246,13 @@ public class FTUEController : MonoBehaviour
         timeScaleTween?.Kill();
         panelSequence?.Kill();
         hintPulseTween?.Kill();
+    }
+    
+    private void OnDisable()
+    {
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, StartingFTUE);
+        GameManager.events.RemoveEvent<SnakeBodyController>(GameEvents.EventType.OnAteRightFood, OnRightFoodSelected);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnAteWrongFood, OnWrongFoodSelected);
     }
 
     #endregion
