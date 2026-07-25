@@ -165,6 +165,16 @@ public class SnakeHeadController : MonoBehaviour
             Time.deltaTime);
     }
 
+    private void OnCorrectFoodAte()
+    {
+        characterAnimator.SetTrigger("Jump");
+    }
+    
+    private void OnWrongFoodAte()
+    {
+        
+    }
+
     #endregion
 
     #region GameOver
@@ -222,26 +232,8 @@ public class SnakeHeadController : MonoBehaviour
                 }
                 else
                 {
-                    SFXManager.instance.PlayEat();
-
-                    if (snakeBodyController.IsTheTargetFood(segment.FoodType))
-                    {
-                        characterAnimator.SetTrigger("Jump");
-                        FTUEController.Instance.OnFoodCollected(true);
-                        Debug.Log("Removing food");
-                        snakeBodyController.RemoveSegment();
-                        foodSpawner.SpawnRandomFood();
-                        Destroy(other.gameObject);
-                        //transform.DOPunchScale(Vector3.one*0.2f,0.2f);
-                    }
-                    else
-                    {
-                        FTUEController.Instance.OnFoodCollected(false);
-                        Debug.Log("Adding food");
-                        snakeBodyController.AddEatenSegment(segment);
-                        Destroy(other.gameObject);
-                        //transform.DOPunchScale(Vector3.one*0.2f,0.2f);
-                    }
+                    GameManager.events.TriggerEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, segment);
+                    Destroy(other.gameObject);
                 }
             }
         }

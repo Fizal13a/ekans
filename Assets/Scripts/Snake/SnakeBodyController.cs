@@ -32,6 +32,17 @@ public class SnakeBodyController : MonoBehaviour
     [SerializeField] private int maxBodyLength = 50;
     public int MaxBodyLength => maxBodyLength;
     
+    public FoodType TargetFood
+    {
+        get
+        {
+            if (segments.Count == 0)
+                return FoodType.Apple;
+
+            return segments[0].FoodType;
+        }
+    }
+    
     [Header("Bool")]
     private bool gameOver;
 
@@ -68,6 +79,7 @@ public class SnakeBodyController : MonoBehaviour
     private void OnEnable()
     {
        GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
+       GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
     }
 
     private void Initialize()
@@ -120,9 +132,10 @@ public class SnakeBodyController : MonoBehaviour
             available.RemoveAt(randomIndex);
         }
 
-        foodSpawner.HighlightFoodsOfType(segments[0].FoodType);
         Debug.Log(segments[0].FoodType.ToString());
         UpdateBody();
+        
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnSnakeInitialized, this);
     }
 
     #endregion
@@ -278,6 +291,20 @@ public class SnakeBodyController : MonoBehaviour
 
     #region Actions
 
+    private void OnNewFoodAte(SnakeSegment segment)
+    {
+        if (IsTheTargetFood(segment.FoodType))
+        {
+            RemoveSegment();
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnAteRightFood, this);
+        }
+        else
+        {
+            AddEatenSegment(segment);
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnAteWrongFood);
+        }
+    }
+
     public void OnAteFood()
     {
         foodCount++;
@@ -323,12 +350,6 @@ public class SnakeBodyController : MonoBehaviour
     {
         if(segments.Count == 0) return false;
         return foodType == segments[0].FoodType;
-    }
-
-    public FoodType GetTargetFood()
-    {
-        if (segments.Count == 0) return FoodType.Apple;
-        return segments[0].FoodType;
     }
 
     #endregion

@@ -31,6 +31,11 @@ public class SFXManager : MonoBehaviour
       }
    }
 
+   private void OnEnable()
+   {
+      GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, PlayEat);
+   }
+
    public void UpdateMusicPitch(int segmentCount, int maxBodyLength)
    {
       float t = Mathf.Clamp01((float)segmentCount / maxBodyLength);

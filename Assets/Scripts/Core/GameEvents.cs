@@ -9,6 +9,8 @@ public class GameEvents
         OnGameStart,
         OnFTUEStarted,
         OnFTUEStopped,
+        OnSnakeInitialized,
+        OnAteFood,
         OnAteRightFood,
         OnAteWrongFood,
         OnNewSegmentAdded,
@@ -84,7 +86,14 @@ public class GameEvents
 
         foreach (Delegate del in delegates)
         {
-            del.DynamicInvoke(value);
+            if (del is Action<T> actionWithParam)
+            {
+                actionWithParam(value);
+            }
+            else if (del is Action action)
+            {
+                action();
+            }
         }
     }
 }

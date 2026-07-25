@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameEvents events;
+    public static GameEvents events { get; } = new GameEvents();
     
     [Header("Time Scale")]
     private const float DefaultFixedDelta = 0.02f;
@@ -14,11 +14,6 @@ public class GameManager : MonoBehaviour
     [Tooltip("How long the slow-down / speed-up transition takes, in real (unscaled) seconds.")]
     [SerializeField] private float timeTransitionDuration = 0.5f;
     private float ftueCloseDelay = 1f;
-
-    private void Awake()
-    {
-        events = new GameEvents();
-    }
 
     private void OnEnable()
     {

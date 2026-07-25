@@ -69,6 +69,8 @@ public class FTUEController : MonoBehaviour
     private void OnEnable()
     {
         GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, StartingFTUE);
+        GameManager.events.AddEvent<SnakeBodyController>(GameEvents.EventType.OnAteRightFood, OnRightFoodSelected);
+        GameManager.events.AddEvent(GameEvents.EventType.OnAteWrongFood, OnWrongFoodSelected);
     }
 
     private void StartingFTUE()
@@ -81,11 +83,22 @@ public class FTUEController : MonoBehaviour
     #endregion
 
     #region Actions
-    
+
     /// <summary>
     /// Call this whenever the player collects/eats a food item.
     /// </summary>
     /// <param name="wasFollowingBody">True if the item existed on the body/tail segments.</param>
+
+    private void OnRightFoodSelected(SnakeBodyController snake)
+    {
+        OnFoodCollected(true);
+    }
+
+    private void OnWrongFoodSelected()
+    {
+        OnFoodCollected(false);
+    }
+    
     public void OnFoodCollected(bool wasFollowingBody)
     {
         if (wasFollowingBody)

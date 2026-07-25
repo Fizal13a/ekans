@@ -30,12 +30,19 @@ public class FoodSpawner : MonoBehaviour
     private Dictionary<GameObject, Vector3> originalScales = new Dictionary<GameObject, Vector3>();
     private Dictionary<GameObject, Color> originalColors = new Dictionary<GameObject, Color>();
 
-    private void Awake()
+    #region Initialization
+
+    private void OnEnable()
     {
-        SpawnInitialFoods();
+        GameManager.events.AddEvent<SnakeBodyController>(GameEvents.EventType.OnSnakeInitialized, SpawnInitialFoods);
+        GameManager.events.AddEvent<SnakeBodyController>(GameEvents.EventType.OnAteRightFood, SpawnRandomFood);
     }
 
-    private void SpawnInitialFoods()
+    #endregion
+
+    #region FoodSpawning
+
+    private void SpawnInitialFoods(SnakeBodyController snake)
     {
         for (int i = 0; i < foodCount; i++)
         {
@@ -50,12 +57,14 @@ public class FoodSpawner : MonoBehaviour
             spawnedFoods.Add(food.gameObject);
             spawnedFoodSegments.Add(food);
         }
+        
+        if(snake != null) HighlightFoodsOfType(snake);
     }
 
-    public void SpawnRandomFood()
+    public void SpawnRandomFood(SnakeBodyController snake)
     {
         Debug.Log("Spawning food on random position");
-        FoodType foodType = snakeBodyController.GetTargetFood();
+        FoodType foodType = snake.TargetFood;
 
         for (int i = 0; i < foodPrefabs.Count; i++)
         {
@@ -73,8 +82,11 @@ public class FoodSpawner : MonoBehaviour
                 return;
             }
         }
-     
     }
+
+    #endregion
+
+    #region Remove Food
 
     public void RemoveFoods()
     {
@@ -88,10 +100,14 @@ public class FoodSpawner : MonoBehaviour
     public void ResetFoods()
     {
         RemoveFoods();
-        SpawnInitialFoods();
+        SpawnInitialFoods(null);
     }
-    
-    private Vector3 GetRandomSpawnPosition()
+
+    #endregion
+
+    #region Helpers
+
+     private Vector3 GetRandomSpawnPosition()
     {
         Bounds bounds = spawnArea.bounds;
 
@@ -103,28 +119,32 @@ public class FoodSpawner : MonoBehaviour
     }
     
     bool hasTargetFood = false;
-     public void HighlightFoodsOfType(FoodType foodType)
+     public void HighlightFoodsOfType(SnakeBodyController snake)
     {
         StopHighlights(); // clear any previous highlight state first
-
-        if (spawnedFoodSegments.Count == 0) return;
-        Debug.Log("Highlighted food type: " + foodType);
+        Debug.Log(snake.TargetFood.ToString());
+        if (spawnedFoodSegments.Count == 0)
+        {
+            Debug.Log(spawnedFoods.Count);
+            return;
+        }
+        Debug.Log("Highlighted food type: " + snake.TargetFood);
 
         foreach (SnakeSegment seg in spawnedFoodSegments)
         {
-            if (seg.FoodType == foodType)
+            if (seg.FoodType == snake.TargetFood)
             {
                 hasTargetFood = true;
                 seg.EnableArrowObject();
-                Debug.Log("Highlighted food type: " + foodType);
+                Debug.Log("Highlighted food type: " + snake.TargetFood);
                 HighlightFood(seg.gameObject);
             }
         }
 
         if (!hasTargetFood)
         {
-            SpawnRandomFood();
-            HighlightFoodsOfType(snakeBodyController.GetTargetFood());
+            SpawnRandomFood(snake);
+            HighlightFoodsOfType(snake);
         }
     }
 
@@ -188,8 +208,17 @@ public class FoodSpawner : MonoBehaviour
         originalColors.Clear();
     }
 
+    #endregion
+
+    #region Terminate
+
     private void OnDestroy()
     {
         StopHighlights();
     }
+
+    #endregion
+   
+
+  
 }
