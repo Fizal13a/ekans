@@ -21,6 +21,7 @@ public class GameManager : MonoBehaviour
     {
         events.AddEvent<bool>(GameEvents.EventType.OnFTUEStarted, StartTimeScaleTransition);
         events.AddEvent<bool>(GameEvents.EventType.OnFTUEStopped, StartTimeScaleTransition);
+        events.AddEvent(GameEvents.EventType.OnPowerUpSelected, StartTimeScaleTransition);
     }
 
     private void Start()
@@ -33,7 +34,12 @@ public class GameManager : MonoBehaviour
 
     #region Time Scale
 
-    private void StartTimeScaleTransition(bool isFTUEShowing)
+    private void StartTimeScaleTransition()
+    {
+        StartTimeScaleTransition(false);
+    }
+
+    private void StartTimeScaleTransition(bool isFTUEShowing = false)
     {
         Debug.Log("STARTNG TIME SCALE TRANSITION");
         

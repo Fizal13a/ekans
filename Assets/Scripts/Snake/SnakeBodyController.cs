@@ -17,6 +17,20 @@ public struct SegmentAddedData
     }
 }
 
+public struct LevelUpData
+{
+    public float LevelAmount;
+    public int Level;
+    public bool IsSnakeBig;
+
+    public LevelUpData(float levelAmount, int level, bool isSnakeBig)
+    {
+        LevelAmount = levelAmount;
+        Level = level;
+        IsSnakeBig = isSnakeBig;
+    }
+}
+
 public class SnakeBodyController : MonoBehaviour
 {
     [Header("References")]
@@ -95,6 +109,7 @@ public class SnakeBodyController : MonoBehaviour
        GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
        GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
        GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, TriggerGameOver);
+       GameManager.events.AddEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
     }
 
     private void Initialize()
@@ -272,7 +287,8 @@ public class SnakeBodyController : MonoBehaviour
         RemoveSegment(0);
         OnAteFood();
         
-        GameManager.events.TriggerEvent(GameEvents.EventType.OnSegmentRemoved);
+        float levelValue = foodCount / (float)maxFood;
+        GameManager.events.TriggerEvent<float>(GameEvents.EventType.OnSegmentRemoved, levelValue);
     }
     
     //ANIMATE
@@ -332,12 +348,15 @@ public class SnakeBodyController : MonoBehaviour
         if (foodCount >= maxFood)
         {
             level++;
-            if(segments.Count > 10)
-                uimanager.OpenPowerUpPanel(false);
-            else
-            {
-                uimanager.OpenPowerUpPanel(true);
-            }
+          
+            float levelValue = foodCount / (float)maxFood;
+            bool isSnakeSegmentMore = false || segments.Count > 10;
+            
+            GameManager.events.TriggerEvent(
+                GameEvents.EventType.OnLevelUp,
+                new LevelUpData(levelValue, level, isSnakeSegmentMore)
+            );
+          
             foodCount = 0;
 
             // Bigger punch to sell the level-up moment
@@ -347,9 +366,29 @@ public class SnakeBodyController : MonoBehaviour
 
             Debug.Log("Level Up");
         }
-        
-        float levelValue = foodCount / (float)maxFood;
-        uimanager.IncrementLevel(level, levelValue);
+    }
+
+    #endregion
+
+    #region Power Ups
+
+    private void OnPowerUpSelected(ChaosType type)
+    {
+        switch (type)
+        {
+            case ChaosType.Plus5:
+                AddSegments(5);
+                break;
+            case ChaosType.Plus10:
+                AddSegments(10);
+                break;
+            case ChaosType.Minus5:
+                RemoveSegments(5);
+                break;
+            case ChaosType.Minus10:
+                RemoveSegments(10);
+                break;
+        }
     }
 
     #endregion
@@ -438,6 +477,7 @@ public class SnakeBodyController : MonoBehaviour
         GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, Initialize);
         GameManager.events.RemoveEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, TriggerGameOver);
+        GameManager.events.RemoveEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
     }
 
     #endregion

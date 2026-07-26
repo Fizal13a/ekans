@@ -36,6 +36,7 @@ public class FoodSpawner : MonoBehaviour
     {
         GameManager.events.AddEvent<SnakeBodyController>(GameEvents.EventType.OnSnakeInitialized, SpawnInitialFoods);
         GameManager.events.AddEvent<SnakeBodyController>(GameEvents.EventType.OnAteRightFood, SpawnRandomFood);
+        GameManager.events.AddEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
     }
 
     #endregion
@@ -101,6 +102,20 @@ public class FoodSpawner : MonoBehaviour
     {
         RemoveFoods();
         SpawnInitialFoods(null);
+    }
+
+    #endregion
+
+    #region Power Ups
+
+    private void OnPowerUpSelected(ChaosType chaosType)
+    {
+        switch (chaosType)
+        {
+            case ChaosType.ChangeItems:
+                ResetFoods();
+                break;
+        }
     }
 
     #endregion

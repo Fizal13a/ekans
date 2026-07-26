@@ -93,23 +93,29 @@ public class UIManager : MonoBehaviour
         GameManager.events.AddEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateBodyLimitBar);
         GameManager.events.AddEvent<int>(GameEvents.EventType.OnGameOverPanelTrigger, GameOver);
         GameManager.events.AddEvent(GameEvents.EventType.OnSegmentRemoved, PopUpDestroyedSegments);
+        GameManager.events.AddEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
+        GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
+        GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
     }
 
     #endregion
 
     #region Level
 
-    public void IncrementLevel(int level, float value)
+    public void IncrementLevelBar(float value)
     {
         levelBarImage.DOKill();
         levelBarImage.DOFillAmount(value, levelBarFillDuration)
             .SetEase(Ease.OutQuad);
+    }
 
-        levelText.text = level.ToString();
+    public void IncrementLevel(LevelUpData levelUpData)
+    {
+        levelText.text = levelUpData.Level.ToString();
 
-        if (level != lastDisplayedLevel)
+        if (levelUpData.Level != lastDisplayedLevel)
         {
-            lastDisplayedLevel = level;
+            lastDisplayedLevel = levelUpData.Level;
 
             levelText.transform.DOKill();
             levelText.transform.DOPunchScale(Vector3.one * levelTextPunchScale, levelTextPunchDuration, vibrato: 8,
@@ -121,7 +127,7 @@ public class UIManager : MonoBehaviour
 
     #region PowerUp
 
-    public void OpenPowerUpPanel(bool canShowNegative)
+    public void OpenPowerUpPanel(LevelUpData levelUpData)
     {
         Time.timeScale = 0;
 
@@ -130,7 +136,7 @@ public class UIManager : MonoBehaviour
 
         List<ChaosScriptableObject> availableChaos;
 
-        if (canShowNegative)
+        if (!levelUpData.IsSnakeBig)
         {
             availableChaos = new List<ChaosScriptableObject>(negativeChaosScriptableObjects);
         }
@@ -182,16 +188,14 @@ public class UIManager : MonoBehaviour
                 
                 PlayCountdown(3, () =>
                 {
-                    Time.timeScale = 1;
+                    GameManager.events.TriggerEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, chaosType);
                     DoChaos(chaosType);
-                    cameraController.ShakeOnSegmentAdded();
                 });
             });
     }
     
     public void OnChaosSelected(ChaosCardUI chaosCard)
     {
-        //SFXManager.instance.PlayChaosSelected();
         ChaosType type = chaosCard.GetChaosObject().chaosType;
         ClosePowerUpPanel(type);
     }
@@ -201,34 +205,15 @@ public class UIManager : MonoBehaviour
         switch (chaosType)
         {
             case ChaosType.Fast:
-                snakeHeadController.SpeedChange(2);
                 ShowTimer();
                 break;
             case ChaosType.Slow:
-                snakeHeadController.SpeedChange(-2);
                 ShowTimer();
                 break;
-            case ChaosType.Plus5:
-                snakebodyController.AddSegments(5);
-                break;
-            case ChaosType.Plus10:
-                snakebodyController.AddSegments(10);
-                break;
-            case ChaosType.Minus5:
-                snakebodyController.RemoveSegments(5);
-                break;
-            case ChaosType.Minus10:
-                snakebodyController.RemoveSegments(10);
-                break;
-            case ChaosType.ChangeItems:
-                foodSpawner.ResetFoods();
-                break;
             case ChaosType.PassThrough:
-                snakeHeadController.PassThrough();
                 ShowTimer();
                 break;
             case ChaosType.Inverse:
-                snakeHeadController.Inverse();
                 ShowTimer();
                 break;
         }
@@ -373,7 +358,7 @@ public class UIManager : MonoBehaviour
             .OnComplete(() =>
             {
                 timerBarRoot.gameObject.SetActive(false);
-                snakeHeadController.ResetAll();
+                GameManager.events.TriggerEvent(GameEvents.EventType.OnPowerUpCompleted);
             });
     }
 
@@ -582,6 +567,9 @@ public class UIManager : MonoBehaviour
         GameManager.events.RemoveEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateBodyLimitBar);
         GameManager.events.RemoveEvent<int>(GameEvents.EventType.OnGameOverPanelTrigger, GameOver);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnSegmentRemoved, PopUpDestroyedSegments);
+        GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
+        GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
+        GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
     }
 
     #endregion

@@ -59,6 +59,7 @@ public class CameraController : MonoBehaviour
     {
         if(GameManager.events == null) Debug.Log("Events not initialized");
         GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
+        GameManager.events.AddEvent(GameEvents.EventType.OnNewSegmentAdded, ShakeOnSegmentAdded);
     }
 
     private void Initialize()

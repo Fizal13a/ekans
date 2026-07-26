@@ -29,6 +29,7 @@ public class SFXManager : MonoBehaviour
       GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, PlayEat);
       GameManager.events.AddEvent(GameEvents.EventType.OnSegmentRemoved, PlaySegmentRemoved);
       GameManager.events.AddEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateMusicPitch);
+      GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpSelected, PlayChaosSelected);
    }
 
    #endregion

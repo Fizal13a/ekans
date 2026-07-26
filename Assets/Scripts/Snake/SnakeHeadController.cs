@@ -24,6 +24,11 @@ public class SnakeHeadController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField] private float rotationSpeed = 15f;
+    
+    [Header("Power Up")]
+    private float origionalSpeed;
+    private bool canIgnoreBodySegment = false;
+    private bool inverse = false;
 
     [Header("Turn Bend / Juice")]
     [SerializeField] private float bendAngle = 18f;
@@ -59,6 +64,8 @@ public class SnakeHeadController : MonoBehaviour
     {
         GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, InitializeHead);
         GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, GameOver);
+        GameManager.events.AddEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
+        GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpCompleted, ResetAll);
 
         snakeInputs.Enable();
         snakeInputs.Snake.Turn.performed += OnTurn;
@@ -247,11 +254,27 @@ public class SnakeHeadController : MonoBehaviour
 
     #endregion
     
-    #region Chaos
-
-    private float origionalSpeed;
-    private bool canIgnoreBodySegment = false;
-    private bool inverse = false;
+    #region Power Ups
+    
+    private void OnPowerUpSelected(ChaosType type)
+    {
+        switch (type)
+        {
+            case ChaosType.Fast:
+                SpeedChange(2);
+                break;
+            case ChaosType.Slow:
+                SpeedChange(-2);
+                break;
+            case ChaosType.PassThrough:
+                PassThrough();
+                break;
+            case ChaosType.Inverse:
+                Inverse();
+                break;
+        }
+    }
+    
     public void SpeedChange(float speed)
     {
         moveSpeed += speed;
@@ -296,6 +319,8 @@ public class SnakeHeadController : MonoBehaviour
         
         GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, InitializeHead);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, GameOver);
+        GameManager.events.RemoveEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnPowerUpCompleted, ResetAll);
 
         bendTween?.Kill();
     }
