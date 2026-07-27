@@ -13,6 +13,7 @@ public class SnakeSegment : MonoBehaviour
     private void Awake()
     {
         collider = GetComponent<Collider>();
+        outlineMat = visualMesh.materials[1];
     }
 
     public void OnAddedToBody()
@@ -38,11 +39,24 @@ public class SnakeSegment : MonoBehaviour
     }
     
     [SerializeField] Transform visual;
+    [SerializeField] MeshRenderer visualMesh;
+    private Material outlineMat;
 
-    public void PlayEatWave(float delay)
+    public void EnableOutline()
+    {
+        outlineMat.SetFloat("_Scale", 1.1f);
+    }
+
+    public void DisableOutline()
+    {
+        outlineMat.SetFloat("_Scale", 1f);
+    }
+    
+
+    public void PlayEatWave()
     {
         DOTween.Sequence()
-            .SetDelay(delay)
+            .SetDelay(0.1f)
             .Append(visual.DOScale(1.15f,0.08f))
             .Append(visual.DOScale(1f,0.12f));
     }

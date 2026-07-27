@@ -29,7 +29,9 @@ public class SFXManager : MonoBehaviour
       GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, PlayEat);
       GameManager.events.AddEvent(GameEvents.EventType.OnSegmentRemoved, PlaySegmentRemoved);
       GameManager.events.AddEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateMusicPitch);
+      GameManager.events.AddEvent(GameEvents.EventType.OnLevelUp, PlayLevelUp);
       GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpSelected, PlayChaosSelected);
+      GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, PlayGameOver);
    }
 
    #endregion
@@ -102,6 +104,9 @@ public class SFXManager : MonoBehaviour
       GameManager.events.RemoveEvent(GameEvents.EventType.OnAteFood, PlayEat);
       GameManager.events.RemoveEvent(GameEvents.EventType.OnSegmentRemoved, PlaySegmentRemoved);
       GameManager.events.RemoveEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateMusicPitch);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnLevelUp, PlayLevelUp);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnPowerUpSelected, PlayChaosSelected);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, PlayGameOver);
    }
 
    #endregion

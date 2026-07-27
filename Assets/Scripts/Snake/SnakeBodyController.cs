@@ -253,6 +253,7 @@ public class SnakeBodyController : MonoBehaviour
         
         SnakeSegment segment = Instantiate(food, bodyRoot);
         segment.OnAddedToBody();
+        segment.EnableOutline();
         segments.Add(segment);
         UpdateBodyLimitUI();
 

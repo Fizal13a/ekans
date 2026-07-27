@@ -29,6 +29,9 @@ public class SnakeHeadController : MonoBehaviour
     private float origionalSpeed;
     private bool canIgnoreBodySegment = false;
     private bool inverse = false;
+    
+    [Header("VFX")]
+    [SerializeField] private ParticleSystem hitParticles;
 
     [Header("Turn Bend / Juice")]
     [SerializeField] private float bendAngle = 18f;
@@ -192,7 +195,7 @@ public class SnakeHeadController : MonoBehaviour
         if (isGameOver)
             return;
         
-        Debug.Log("Game Over");
+        hitParticles.Play();
         canCollide = false;
         characterAnimator.SetBool("GameOver", true);
  

@@ -77,6 +77,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   FoodType: 0
+  arrowObject: {fileID: 0}
+  visual: {fileID: 3803736471005171464}
+  visualMesh: {fileID: 537014700297717904}
 --- !u!1001 &3693848172964833507
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -145,11 +148,24 @@ PrefabInstance:
       propertyPath: m_Name
       value: burger
       objectReference: {fileID: 0}
+    - target: {fileID: 3760773222260531315, guid: 4860310e6ad2b8a4989d1b35e443169a, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3760773222260531315, guid: 4860310e6ad2b8a4989d1b35e443169a, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: c9a5899d69e27df4d8c1a1111a25fd74, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4860310e6ad2b8a4989d1b35e443169a, type: 3}
+--- !u!23 &537014700297717904 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 3760773222260531315, guid: 4860310e6ad2b8a4989d1b35e443169a, type: 3}
+  m_PrefabInstance: {fileID: 3693848172964833507}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3803736471005171464 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 4860310e6ad2b8a4989d1b35e443169a, type: 3}
