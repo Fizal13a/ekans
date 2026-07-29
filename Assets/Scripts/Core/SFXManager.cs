@@ -7,7 +7,9 @@ public class SFXManager : MonoBehaviour
    public AudioSource gameBGSource;
    public AudioSource eatSource;
    public AudioSource segmentRemovedSource;
+   public AudioSource segmentRemovedSource_2;
    public AudioSource LevelUpSource;
+   public AudioSource LevelUpSource_2;
    public AudioSource chaosSelectedSource;
    public AudioSource gameOverSource;
    public AudioSource ftueStart;
@@ -46,11 +48,13 @@ public class SFXManager : MonoBehaviour
    public void PlaySegmentRemoved()
    {
       segmentRemovedSource.Play();
+      segmentRemovedSource_2.Play();
    }
 
    public void PlayLevelUp()
    {
       LevelUpSource.Play();
+      LevelUpSource_2.Play();
    }
 
    public void PlayChaosSelected()
