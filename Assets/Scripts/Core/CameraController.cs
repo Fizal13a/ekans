@@ -1,206 +1,166 @@
-using DG.Tweening;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
+/// <summary>
+/// Top-down camera controller with follow, shake, and scale-based zoom.
+/// Attach to the Main Camera. Works with an Orthographic camera (typical
+/// for top-down games) but also supports Perspective (adjusts FOV instead).
+/// </summary>
+[RequireComponent(typeof(Camera))]
 public class CameraController : MonoBehaviour
 {
-    [Header("References")]
-    [SerializeField] private Transform target;
-    [SerializeField] private SnakeBodyController snake;
+    [Header("Follow Settings")]
+    [Tooltip("The player transform the camera follows.")]
+    public Transform target;
 
-    [Header("Follow")]
-    [SerializeField] private Vector3 offset = new Vector3(0, 15, -12);
-    [SerializeField] private float followSmoothTime = 0.2f;
+    [Tooltip("Offset from the target (useful for angled top-down views).")]
+    public Vector3 offset = new Vector3(0f, 10f, 0f);
 
-    [Header("Zoom")]
-    [SerializeField] private float minHeight = 15f;
-    [SerializeField] private float maxHeight = 30f;
-    [SerializeField] private int minSnakeLength = 5;
-    [SerializeField] private int maxSnakeLength = 30;
-    [SerializeField] private float zoomSmoothSpeed = 5f;
+    [Tooltip("How quickly the camera catches up to the target (higher = snappier).")]
+    public float followSmoothTime = 0.2f;
 
-    [Header("Polish / Juice - Shake")]
-    [SerializeField] private float eatShakeStrength = 0.15f;
-    [SerializeField] private float eatShakeDuration = 0.2f;
-    [SerializeField] private float levelUpShakeStrength = 0.5f;
-    [SerializeField] private float levelUpShakeDuration = 0.4f;
+    [Header("Zoom Settings (Scale-Based)")]
+    [Tooltip("Camera zoom (orthographic size or FOV) when player is at baseScale.")]
+    public float baseZoom = 5f;
 
-    [Header("Polish / Juice - Zoom Kick")]
-    [SerializeField] private float zoomKickAmount = -1.5f;
-    [SerializeField] private float zoomKickDuration = 0.25f;
+    [Tooltip("The player scale that corresponds to baseZoom.")]
+    public float baseScale = 1f;
 
-    [Header("Polish / Juice - Bank / Tilt")]
-    [SerializeField] private float maxBankAngle = 8f;
-    [SerializeField] private float bankTurnSensitivity = 8f;
-    [SerializeField] private float bankSmoothSpeed = 4f;
-    
-    [Header("Polish / Juice - Segment Added")]
-    [SerializeField] private float segmentAddedShakeStrength = 0.3f;
-    [SerializeField] private float segmentAddedShakeDuration = 0.25f;
-    [SerializeField] private float growthZoomKickAmount = 1.2f;   // positive = camera pulls back, not in
-    [SerializeField] private float growthZoomKickDuration = 0.35f;
+    [Tooltip("How much zoom changes per unit of player scale growth.")]
+    public float zoomPerScaleUnit = 2f;
 
-    private Sequence growthZoomKickSequence;
+    [Tooltip("Clamp so the camera doesn't zoom in/out too far.")]
+    public float minZoom = 3f;
+    public float maxZoom = 20f;
 
-    private Vector3 velocity;
-    private float currentHeight;
+    [Tooltip("How quickly the camera zoom transitions to the target zoom.")]
+    public float zoomSmoothTime = 0.3f;
 
-    private float currentShakeMagnitude;
-    private Tweener shakeTween;
+    [Header("Shake Settings")]
+    [Tooltip("Curve controlling shake falloff over the duration (1 = full strength, 0 = none).")]
+    public AnimationCurve shakeFalloff = AnimationCurve.EaseInOut(0, 1, 1, 0);
 
-    private float zoomKick;
-    private Sequence zoomKickSequence;
+    private Camera _camera;
+    private Vector3 _followVelocity = Vector3.zero;
+    private float _zoomVelocity = 0f;
+    private float _targetZoom;
 
-    private Vector3 lastTargetForward;
-    private float currentBank;
+    // Shake state
+    private float _shakeTimeRemaining = 0f;
+    private float _shakeDuration = 0f;
+    private float _shakeMagnitude = 0f;
+    private Vector3 _shakeOffset = Vector3.zero;
 
-    #region Initialize
+    private void Awake()
+    {
+        _camera = GetComponent<Camera>();
+        _targetZoom = baseZoom;
+
+        if (_camera.orthographic)
+            _camera.orthographicSize = baseZoom;
+        else
+            _camera.fieldOfView = baseZoom;
+    }
 
     private void OnEnable()
     {
-        if(GameManager.events == null) Debug.Log("Events not initialized");
-        GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
-        GameManager.events.AddEvent(GameEvents.EventType.OnNewSegmentAdded, ShakeOnSegmentAdded);
+        GameManager.events.AddEvent<SegmentAddedData>(GameEvents.EventType.OnNewSegmentAdded, UpdateZoomForScale);
     }
-
-    private void Initialize()
-    {
-        currentHeight = minHeight;
-        lastTargetForward = target.forward;
-    }
-
-    #endregion
-
-    #region Update
 
     private void LateUpdate()
     {
-        UpdateZoom();
+        HandleFollow();
+        HandleZoom();
+        HandleShake();
+    }
 
-        Vector3 desiredPosition = target.position;
-        desiredPosition += new Vector3(
-            offset.x,
-            currentHeight + zoomKick,
-            offset.z);
+    // ---------------- FOLLOW ----------------
 
-        if (currentShakeMagnitude > 0.0001f)
-            desiredPosition += Random.insideUnitSphere * currentShakeMagnitude;
+    private void HandleFollow()
+    {
+        if (target == null) return;
 
+        Vector3 desiredPosition = target.position + offset + _shakeOffset;
         transform.position = Vector3.SmoothDamp(
             transform.position,
             desiredPosition,
-            ref velocity,
-            followSmoothTime);
-
-        UpdateBank();
-
-        //transform.LookAt(target);
+            ref _followVelocity,
+            followSmoothTime
+        );
     }
 
-    private void UpdateZoom()
+    // ---------------- ZOOM (SCALE-BASED) ----------------
+
+    /// <summary>
+    /// Call this whenever the player's scale changes (e.g. from a growth power-up).
+    /// Pass the player's current uniform scale (or magnitude if non-uniform).
+    /// </summary>
+    /// <param name="currentPlayerScale">Player's current scale value.</param>
+    public void UpdateZoomForScale(SegmentAddedData segmentAddedData)
     {
-        float t = Mathf.InverseLerp(
-            minSnakeLength,
-            maxSnakeLength,
-            snake.Length);
-
-        float targetHeight = Mathf.Lerp(
-            minHeight,
-            maxHeight,
-            t);
-
-        currentHeight = Mathf.Lerp(
-            currentHeight,
-            targetHeight,
-            zoomSmoothSpeed * Time.deltaTime);
+        int size = segmentAddedData.SegmentCount;
+        float scaleDelta = size - baseScale;
+        float desiredZoom = baseZoom + scaleDelta * zoomPerScaleUnit;
+        _targetZoom = Mathf.Clamp(desiredZoom, minZoom, maxZoom);
+        
+        ShakeCamera();
     }
 
-    private void UpdateBank()
+    /// <summary>
+    /// Overload: directly set a target zoom value, bypassing the scale formula.
+    /// Useful for cutscenes or manual zoom control.
+    /// </summary>
+    public void SetTargetZoom(float zoom)
     {
-        // Subtle roll as the snake turns, so the camera feels like it's riding along rather than rigidly locked
-        Vector3 currentForward = target.forward;
-        float turnAmount = Vector3.SignedAngle(lastTargetForward, currentForward, Vector3.up);
-        lastTargetForward = currentForward;
-
-        float targetBank = Mathf.Clamp(-turnAmount * bankTurnSensitivity, -maxBankAngle, maxBankAngle);
-        currentBank = Mathf.Lerp(currentBank, targetBank, bankSmoothSpeed * Time.deltaTime);
-
-        Vector3 euler = transform.eulerAngles;
-        transform.rotation = Quaternion.Euler(euler.x, euler.y, currentBank);
+        _targetZoom = Mathf.Clamp(zoom, minZoom, maxZoom);
     }
 
-    #endregion
-
-    #region Effects
-
-    /// <summary>Call this whenever food is eaten for a quick shake + zoom punch.</summary>
-    public void ShakeOnEat()
+    private void HandleZoom()
     {
-        Shake(eatShakeStrength, eatShakeDuration);
-        ZoomKick();
-    }
-    
-    public void ShakeOnSegmentAdded()
-    {
-        Shake(segmentAddedShakeStrength, segmentAddedShakeDuration);
-        GrowthZoomKick();
+        float current = _camera.orthographic ? _camera.orthographicSize : _camera.fieldOfView;
+        float smoothedZoom = Mathf.SmoothDamp(current, _targetZoom, ref _zoomVelocity, zoomSmoothTime);
+
+        if (_camera.orthographic)
+            _camera.orthographicSize = smoothedZoom;
+        else
+            _camera.fieldOfView = smoothedZoom;
     }
 
-    /// <summary>Call this on level-up for a bigger, more dramatic shake.</summary>
-    public void ShakeOnLevelUp()
+    // ---------------- SHAKE ----------------
+
+    /// <summary>
+    /// Triggers a camera shake effect.
+    /// </summary>
+    /// <param name="duration">How long the shake lasts, in seconds.</param>
+    /// <param name="magnitude">Max positional offset of the shake.</param>
+    public void ShakeCamera(float duration = 0.3f, float magnitude = 0.4f)
     {
-        Shake(levelUpShakeStrength, levelUpShakeDuration);
+        _shakeDuration = duration;
+        _shakeTimeRemaining = duration;
+        _shakeMagnitude = magnitude;
     }
 
-    private void Shake(float strength, float duration)
+    private void HandleShake()
     {
-        shakeTween?.Kill();
-        currentShakeMagnitude = strength;
+        if (_shakeTimeRemaining > 0f)
+        {
+            float normalizedTime = 1f - (_shakeTimeRemaining / _shakeDuration);
+            float falloff = shakeFalloff.Evaluate(normalizedTime);
 
-        shakeTween = DOTween.To(
-                () => currentShakeMagnitude,
-                x => currentShakeMagnitude = x,
+            _shakeOffset = new Vector3(
+                (Random.value * 2f - 1f) * _shakeMagnitude * falloff,
                 0f,
-                duration)
-            .SetEase(Ease.OutQuad);
+                (Random.value * 2f - 1f) * _shakeMagnitude * falloff
+            );
+
+            _shakeTimeRemaining -= Time.deltaTime;
+        }
+        else
+        {
+            _shakeOffset = Vector3.zero;
+        }
     }
-    
-    private void GrowthZoomKick()
-    {
-        growthZoomKickSequence?.Kill();
-        zoomKick = 0f;
-
-        // Quick pull-back then settle — opposite direction from the eat zoom kick,
-        // so growth reads as "world receding to fit you" rather than "impact".
-        growthZoomKickSequence = DOTween.Sequence()
-            .Append(DOTween.To(() => zoomKick, x => zoomKick = x, growthZoomKickAmount, growthZoomKickDuration * 0.4f).SetEase(Ease.OutQuad))
-            .Append(DOTween.To(() => zoomKick, x => zoomKick = x, 0f, growthZoomKickDuration * 0.6f).SetEase(Ease.OutElastic));
-    }
-
-    private void ZoomKick()
-    {
-        zoomKickSequence?.Kill();
-        zoomKick = 0f;
-
-        zoomKickSequence = DOTween.Sequence()
-            .Append(DOTween.To(() => zoomKick, x => zoomKick = x, zoomKickAmount, zoomKickDuration * 0.4f).SetEase(Ease.OutQuad))
-            .Append(DOTween.To(() => zoomKick, x => zoomKick = x, 0f, zoomKickDuration * 0.6f).SetEase(Ease.OutElastic));
-    }
-
-    #endregion
-
-    #region Terminate
-
-    private void OnDestroy()
-    {
-        shakeTween?.Kill();
-        zoomKickSequence?.Kill();
-    }
-    private void OnDisable()
-    {
-        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, Initialize);
-    }
-    
-
-    #endregion
-    
 }

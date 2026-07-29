@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using DG.Tweening;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -31,7 +32,9 @@ public class SnakeHeadController : MonoBehaviour
     private bool inverse = false;
     
     [Header("VFX")]
+    public List<ParticleSystem> onAteParticles;
     [SerializeField] private ParticleSystem hitParticles;
+    [SerializeField] private ParticleSystem levelUpParticle;
 
     [Header("Turn Bend / Juice")]
     [SerializeField] private float bendAngle = 18f;
@@ -69,6 +72,8 @@ public class SnakeHeadController : MonoBehaviour
         GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, GameOver);
         GameManager.events.AddEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
         GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpCompleted, ResetAll);
+        GameManager.events.AddEvent(GameEvents.EventType.OnLevelUp, OnLevelUp);
+        GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, OnAteFood);
 
         snakeInputs.Enable();
         snakeInputs.Snake.Turn.performed += OnTurn;
@@ -179,6 +184,17 @@ public class SnakeHeadController : MonoBehaviour
     private void OnCorrectFoodAte()
     {
         characterAnimator.SetTrigger("Jump");
+    }
+
+    private void OnLevelUp()
+    {
+        levelUpParticle.Play();
+    }
+    
+    private void OnAteFood()
+    {
+        int randomParticle =  Random.Range(0, onAteParticles.Count);
+        onAteParticles[randomParticle].Play();
     }
     
     private void OnWrongFoodAte()

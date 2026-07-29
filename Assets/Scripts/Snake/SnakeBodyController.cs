@@ -249,8 +249,6 @@ public class SnakeBodyController : MonoBehaviour
     
     public void AddSegment(SnakeSegment food, bool animateSpawn = true)
     {
-        cameraController.ShakeOnSegmentAdded();
-        
         SnakeSegment segment = Instantiate(food, bodyRoot);
         segment.OnAddedToBody();
         segment.EnableOutline();

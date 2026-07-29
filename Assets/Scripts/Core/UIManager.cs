@@ -129,6 +129,13 @@ public class UIManager : MonoBehaviour
 
     public void OpenPowerUpPanel(LevelUpData levelUpData)
     {
+        StartCoroutine(LevelUpHandlerDelay(levelUpData));
+    }
+
+    IEnumerator LevelUpHandlerDelay(LevelUpData levelUpData)
+    {
+        yield return new WaitForSeconds(1f);
+        
         Time.timeScale = 0;
 
         //SFXManager.instance.PlayLevelUp();
@@ -230,7 +237,7 @@ public class UIManager : MonoBehaviour
             if (popUp != null && !popUp.gameObject.activeInHierarchy)
             {
                 popUp.gameObject.SetActive(true);
-                popUp.text = $"x{1}";
+                //popUp.text = $"x{1}";
 
                 popUp.transform.DOKill();
                 popUp.DOKill();

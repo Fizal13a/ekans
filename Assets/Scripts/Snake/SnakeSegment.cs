@@ -8,6 +8,12 @@ public class SnakeSegment : MonoBehaviour
     private Collider collider;
     public GameObject arrowObject;
     
+    [Header("Visual")]
+    [SerializeField] Transform visual;
+    [SerializeField] MeshRenderer visualMesh;
+    private Material outlineMat;
+    [SerializeField] private ParticleSystem spawnOnBodyParticle;
+    
     private bool isAttached =  false;
 
     private void Awake()
@@ -37,14 +43,11 @@ public class SnakeSegment : MonoBehaviour
     {
         return isAttached;
     }
-    
-    [SerializeField] Transform visual;
-    [SerializeField] MeshRenderer visualMesh;
-    private Material outlineMat;
 
     public void EnableOutline()
     {
         outlineMat.SetFloat("_Scale", 1.1f);
+        spawnOnBodyParticle.Play();
     }
 
     public void DisableOutline()
