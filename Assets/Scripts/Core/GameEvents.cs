@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 public class GameEvents
 {
@@ -21,80 +20,105 @@ public class GameEvents
         OnGameOverPanelTrigger,
         OnGameOver
     }
-    
-    private Dictionary<EventType, List<Delegate>> events =
-        new Dictionary<EventType, List<Delegate>>();
-    
+
+    private readonly Dictionary<EventType, List<Delegate>> eventListeners = new();
+
+    /// <summary>
+    /// Registers an event without parameters.
+    /// </summary>
     public void AddEvent(EventType eventType, Action action)
     {
-        if (!events.TryGetValue(eventType, out List<Delegate> delegates))
-        {
-            delegates = new List<Delegate>();
-            events.Add(eventType, delegates);
-        }
+        var listeners = GetOrCreateListeners(eventType);
 
-        delegates.Add(action);
+        if (!listeners.Contains(action))
+            listeners.Add(action);
     }
 
+    /// <summary>
+    /// Registers an event with one parameter.
+    /// </summary>
     public void AddEvent<T>(EventType eventType, Action<T> action)
     {
-        if (!events.TryGetValue(eventType, out List<Delegate> delegates))
-        {
-            delegates = new List<Delegate>();
-            events.Add(eventType, delegates);
-        }
+        var listeners = GetOrCreateListeners(eventType);
 
-        delegates.Add(action);
+        if (!listeners.Contains(action))
+            listeners.Add(action);
     }
 
+    /// <summary>
+    /// Removes an event without parameters.
+    /// </summary>
     public void RemoveEvent(EventType eventType, Action action)
     {
-        if (!events.TryGetValue(eventType, out List<Delegate> delegates))
-            return;
-
-        delegates.Remove(action);
-
-        if (delegates.Count == 0)
-            events.Remove(eventType);
+        RemoveListener(eventType, action);
     }
 
+    /// <summary>
+    /// Removes an event with one parameter.
+    /// </summary>
     public void RemoveEvent<T>(EventType eventType, Action<T> action)
     {
-        if (!events.TryGetValue(eventType, out List<Delegate> delegates))
-            return;
-
-        delegates.Remove(action);
-
-        if (delegates.Count == 0)
-            events.Remove(eventType);
+        RemoveListener(eventType, action);
     }
 
+    /// <summary>
+    /// Triggers an event without parameters.
+    /// </summary>
     public void TriggerEvent(EventType eventType)
     {
-        if (!events.TryGetValue(eventType, out List<Delegate> delegates))
+        if (!eventListeners.TryGetValue(eventType, out var listeners))
             return;
 
-        foreach (Delegate del in delegates)
+        foreach (var listener in listeners)
         {
-            del.DynamicInvoke();
+            if (listener is Action action)
+                action.Invoke();
         }
     }
 
+    /// <summary>
+    /// Triggers an event with one parameter.
+    /// Supports parameterless listeners as well.
+    /// </summary>
     public void TriggerEvent<T>(EventType eventType, T value)
     {
-        if (!events.TryGetValue(eventType, out List<Delegate> delegates))
+        if (!eventListeners.TryGetValue(eventType, out var listeners))
             return;
 
-        foreach (Delegate del in delegates)
+        foreach (var listener in listeners)
         {
-            if (del is Action<T> actionWithParam)
+            switch (listener)
             {
-                actionWithParam(value);
-            }
-            else if (del is Action action)
-            {
-                action();
+                case Action<T> actionWithParam:
+                    actionWithParam.Invoke(value);
+                    break;
+
+                case Action action:
+                    action.Invoke();
+                    break;
             }
         }
+    }
+
+    private List<Delegate> GetOrCreateListeners(EventType eventType)
+    {
+        if (!eventListeners.TryGetValue(eventType, out var listeners))
+        {
+            listeners = new List<Delegate>();
+            eventListeners[eventType] = listeners;
+        }
+
+        return listeners;
+    }
+
+    private void RemoveListener(EventType eventType, Delegate listener)
+    {
+        if (!eventListeners.TryGetValue(eventType, out var listeners))
+            return;
+
+        listeners.Remove(listener);
+
+        if (listeners.Count == 0)
+            eventListeners.Remove(eventType);
     }
 }

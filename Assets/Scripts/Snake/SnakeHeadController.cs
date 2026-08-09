@@ -340,6 +340,8 @@ public class SnakeHeadController : MonoBehaviour
         GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, GameOver);
         GameManager.events.RemoveEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnPowerUpCompleted, ResetAll);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnLevelUp, OnLevelUp);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnAteFood, OnAteFood);
 
         bendTween?.Kill();
     }

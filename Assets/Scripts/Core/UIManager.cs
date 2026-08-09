@@ -15,22 +15,28 @@ public class UIManager : MonoBehaviour
     [SerializeField] private SnakeBodyController snakebodyController;
     [SerializeField] private FoodSpawner foodSpawner;
 
-    [Header("Panels")] public GameObject powerUpPanel;
+    [Header("Panels")] 
+    public GameObject powerUpPanel;
     public CanvasGroup gameOverBG;
     public GameObject gameOverPanel;
     public List<Transform> gameOverStaggerElements;
     public List<RectTransform> gameOverFloatingDecor;
     public TextMeshProUGUI gameOverScoreText;
 
-    [Header("PowerUp")] public List<ChaosScriptableObject> positiveChaosScriptableObjects;
+    [Header("PowerUp")] 
+    public List<ChaosScriptableObject> positiveChaosScriptableObjects;
     public List<ChaosScriptableObject> negativeChaosScriptableObjects;
     public List<ChaosCardUI> chaosCards;
 
-    [Header("UI")] public TextMeshProUGUI levelText;
+    [Header("UI")] 
+    private int currentLevel = 1;
+    public TextMeshProUGUI levelText;
+    public TextMeshProUGUI xpText;
     public Image levelBarImage;
     public List<TextMeshProUGUI> segmentMultiplyPopUps;
 
-    [Header("Timer")] public RectTransform timerBarRoot;
+    [Header("Timer")] 
+    public RectTransform timerBarRoot;
     public Image timerFillImage;
     [SerializeField] private float timerDuration = 10f;
     [SerializeField] private Color timerFullColor = Color.green;
@@ -40,14 +46,18 @@ public class UIManager : MonoBehaviour
     [SerializeField] private float timerPulseScale = 1.15f;
     [SerializeField] private float timerPulseDuration = 0.25f;
     
-    [Header("Countdown")] [SerializeField] private GameObject counterObject;
+    [Header("Countdown")] 
+    [SerializeField] private GameObject counterObject;
     [SerializeField] private TMP_Text counterText; // the TMP child on counterObject
     [SerializeField] private float countdownStepDuration = 1f;
     [SerializeField] private float countdownPunchScale = 0.4f;
     
-    [Header("Body Limit Bar")] [SerializeField]
-    private Image bodyLimitFill;
-
+    [Header("Body Limit Bar")] 
+    [SerializeField] private Image greenFill;
+    [SerializeField] private Image yellowFill;
+    [SerializeField] private Image redFill;
+    private Image currentFill;
+    [SerializeField] private TextMeshProUGUI bodyLimitText;
     [SerializeField] private Gradient bodyLimitGradient;
     [SerializeField] private RectTransform barContainer; // parent rect of the fill bar, for punch/shake
     [SerializeField] private Image flashOverlay; // thin white image over the fill, alpha 0 by default
@@ -81,6 +91,9 @@ public class UIManager : MonoBehaviour
     private Sequence gameOverSequence;
     private readonly Dictionary<RectTransform, Vector2> decorBasePositions = new();
 
+    private Tween greenTween;
+    private Tween yellowTween;
+    private Tween redTween;
     private Tweener timerFillTween;
     private Sequence timerPulseSequence;
     private bool timerActive;
@@ -104,6 +117,7 @@ public class UIManager : MonoBehaviour
 
     public void IncrementLevelBar(float value)
     {
+        xpText.text = $"{value * 100} / {(currentLevel) * 100}";
         levelBarImage.DOKill();
         levelBarImage.DOFillAmount(value, levelBarFillDuration)
             .SetEase(Ease.OutQuad);
@@ -112,6 +126,7 @@ public class UIManager : MonoBehaviour
     public void IncrementLevel(LevelUpData levelUpData)
     {
         levelText.text = levelUpData.Level.ToString();
+        currentLevel = levelUpData.Level;
 
         if (levelUpData.Level != lastDisplayedLevel)
         {
@@ -468,62 +483,41 @@ public class UIManager : MonoBehaviour
     #endregion
 
     #region Body
+    
+    private List<Image> fillBars = new List<Image>();
 
     public void UpdateBodyLimitBar(SegmentAddedData data)
     {
-        float percentage = Mathf.Clamp01(data.Percentage);
-        float previousValue = bodyLimitFill.fillAmount;
-        float delta = percentage - previousValue;
+        bodyLimitText.text = $"{data.SegmentCount} / {data.MaxBodyLength}";
 
-        fillTween?.Kill();
-        punchTween?.Kill();
+        float progress = Mathf.Clamp01(data.Percentage);
+        Debug.Log("Progress: " + progress);
+        
+        fillBars.Clear();
+        
+        fillBars.Add(greenFill);
+        fillBars.Add(yellowFill);
+        fillBars.Add(redFill);
 
-        // --- Fill + color, same as before ---
-        fillTween = bodyLimitFill
-            .DOFillAmount(percentage, 0.25f)
-            .SetEase(Ease.OutCubic)
-            .OnUpdate(() => { bodyLimitFill.color = bodyLimitGradient.Evaluate(bodyLimitFill.fillAmount); });
-
-        // --- Punch scale on the whole bar, sized by how big the change was ---
-        // Growing = punch up (satisfying "gained something"), shrinking = punch down/in (a hit).
-        if (barContainer != null && Mathf.Abs(delta) > 0.001f)
+        if (progress >= 0.5f)
         {
-            float punchSize = Mathf.Lerp(0.13f, 0.4f, Mathf.Clamp01(Mathf.Abs(delta) * 3f));
-            Vector3 punch = delta > 0
-                ? new Vector3(punchSize, punchSize, 0f)
-                : new Vector3(-punchSize * 0.6f, -punchSize * 0.6f, 0f);
-
-            barContainer.localScale = Vector3.one;
-            punchTween = barContainer
-                .DOPunchScale(punch, 0.3f, 8, 0.9f)
-                .SetEase(Ease.OutQuad);
+            fillBars.Remove(greenFill);
+        }
+        if (progress >= 0.8f)
+        {
+            fillBars.Remove(yellowFill);
         }
 
-        // --- Quick white flash on the fill itself, for a crisp "impact" moment ---
-        if (flashOverlay != null && Mathf.Abs(delta) > 0.001f)
+        float fillAmount = progress;
+        
+        foreach (Image image in fillBars)
         {
-            flashOverlay.DOKill();
-            flashOverlay.color = Color.red;
-            flashOverlay.DOFade(0f, 0.3f).SetEase(Ease.OutCubic);
+            fillTween = image
+                .DOFillAmount(fillAmount, 0.25f)
+                .SetEase(Ease.OutCubic);
         }
 
-        // --- Warning pulse when the bar creeps into danger territory ---
-        bool inDanger = percentage >= dangerThreshold;
-        bool wasInDanger = dangerPulseTween != null && dangerPulseTween.IsActive();
-
-        if (inDanger && !wasInDanger && barContainer != null)
-        {
-            dangerPulseTween = barContainer
-                .DOScale(1.04f, 0.35f)
-                .SetEase(Ease.InOutSine)
-                .SetLoops(-1, LoopType.Yoyo);
-        }
-        else if (!inDanger && wasInDanger)
-        {
-            dangerPulseTween.Kill();
-            dangerPulseTween = null;
-            barContainer.localScale = Vector3.one;
-        }
+        fillTween?.Kill(true);
     }
 
     #endregion
