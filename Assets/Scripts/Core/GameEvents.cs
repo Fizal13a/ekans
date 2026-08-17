@@ -18,7 +18,11 @@ public class GameEvents
         OnPowerUpSelected,
         OnPowerUpCompleted,
         OnGameOverPanelTrigger,
-        OnGameOver
+        OnGameOver,
+        
+        //chef
+        OnAttackStarted,
+        OnAttackFinished
     }
 
     private readonly Dictionary<EventType, List<Delegate>> eventListeners = new();
