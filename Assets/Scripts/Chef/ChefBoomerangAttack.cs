@@ -7,6 +7,8 @@ using Random = UnityEngine.Random;
 
 public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
 {
+    private Animator animator;
+    
     [Header("Path")]
     [SerializeField] private LineRenderer lineRenderer;
     [SerializeField] private float lineRevealDuration = 1f;
@@ -33,6 +35,8 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
     
     private void Awake()
     {
+        animator = GetComponent<Animator>();
+        
         knifeStartPosition = knifeHolder.position;
         knifeStartPosition.y = 1f;
 
@@ -78,6 +82,7 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
         // 3. Throw knife
         // --------------------------------
 
+        animator.SetTrigger("Shoot");
         knife.gameObject.SetActive(true);
 
         knife.DOKill();
