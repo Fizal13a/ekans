@@ -15,6 +15,7 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
     [Header("Knife")]
     [SerializeField] private Transform knifeHolder;
     [SerializeField] private Transform knife;
+    [SerializeField] private Knife knifeClass;
     [SerializeField] private float knifeRotateDuration = 0.8f;
     [SerializeField] private float travelDuration = 0.8f;
     [SerializeField] private float returnDuration = 0.8f;
@@ -95,10 +96,7 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
 
         Quaternion throwRotation =
             Quaternion.FromToRotation(Vector3.right, throwDirection);
-
-        // throwRotation.y = 0f;
-        // throwRotation.z += -90;
-
+        
         Sequence throwSequence = DOTween.Sequence();
 
         throwSequence.Join(
@@ -139,9 +137,6 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
         Quaternion returnRotation =
             Quaternion.FromToRotation(Vector3.right, returnDirection);
         
-        // returnRotation.y = 0f;
-        // returnRotation.z += 90;
-
         Sequence returnSequence = DOTween.Sequence();
 
         returnSequence.Join(
@@ -210,6 +205,7 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
         knife.SetParent(null, true);
 
         knife.rotation = Quaternion.Euler(90f, 0f, 0f);
+        knifeClass.EnableOutline();
     }
 
     private void AttachKnife()
@@ -218,6 +214,8 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
 
         knife.localPosition = Vector3.zero;
         knife.localRotation = Quaternion.identity;
+        
+        knifeClass.DisableOutline();
     }
 
     private void SetLineAlpha(float alpha)
