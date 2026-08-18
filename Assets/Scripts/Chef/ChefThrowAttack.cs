@@ -6,6 +6,7 @@ using UnityEngine;
 public class ChefThrowAttack : MonoBehaviour, IChefAttack
 {
     private Animator animator;
+    [SerializeField] private Transform player;
 
     [Header("Throw Settings")] [SerializeField]
     private int amountToThrow = 3;
@@ -15,6 +16,7 @@ public class ChefThrowAttack : MonoBehaviour, IChefAttack
 
     [Header("Spawn Area")] [SerializeField]
     private Transform spawnArea;
+    [SerializeField] private float awayRadius;
 
     [Header("Spawn Particles")] [SerializeField]
     private List<ParticleSystem> spawnParticles;
@@ -94,6 +96,8 @@ public class ChefThrowAttack : MonoBehaviour, IChefAttack
         particlesToUse.Clear();
         targetPositions.Clear();
 
+        List<Vector3> targetPositionsList = GetRandomPositionsAroundPlayer();
+
         for (int i = 0; i < amountToThrow; i++)
         {
             GameObject food = GetRandomInactiveFood(foodsToThrow);
@@ -112,11 +116,9 @@ public class ChefThrowAttack : MonoBehaviour, IChefAttack
                 break;
             }
 
-            Vector3 targetPosition = GetRandomPositionOnPlane();
-
             foodsToThrow.Add(food);
             particlesToUse.Add(particle);
-            targetPositions.Add(targetPosition);
+            targetPositions.Add(targetPositionsList[i]);
         }
 
         // -----------------------------------------
@@ -298,17 +300,52 @@ public class ChefThrowAttack : MonoBehaviour, IChefAttack
         return availableParticles[Random.Range(0, availableParticles.Count)];
     }
 
-    private Vector3 GetRandomPositionOnPlane()
+    [SerializeField] private float playerRadius = 5f;
+    [SerializeField] private float minPointDistance = 2f;
+
+    private List<Vector3> GetRandomPositionsAroundPlayer()
     {
         Renderer renderer = spawnArea.GetComponent<Renderer>();
-
         Bounds bounds = renderer.bounds;
 
-        float x = Random.Range(bounds.min.x, bounds.max.x);
+        List<Vector3> points = new List<Vector3>(amountToThrow);
 
-        float z = Random.Range(bounds.min.z, bounds.max.z);
+        float minDistanceSqr = minPointDistance * minPointDistance;
 
-        return new Vector3(x, bounds.max.y, z);
+        while (points.Count < amountToThrow)
+        {
+            // Random point inside a circle around player
+            Vector2 randomCircle = Random.insideUnitCircle * playerRadius;
+
+            Vector3 point = new Vector3(
+                player.position.x + randomCircle.x,
+                bounds.max.y,
+                player.position.z + randomCircle.y
+            );
+
+            // Make sure point is inside the spawn area
+            if (!bounds.Contains(point))
+                continue;
+
+            // Check distance from all existing points
+            bool valid = true;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                if ((point - points[i]).sqrMagnitude < minDistanceSqr)
+                {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid)
+            {
+                points.Add(point);
+            }
+        }
+
+        return points;
     }
 
     private void DisableAllFood()

@@ -8,6 +8,7 @@ using Random = UnityEngine.Random;
 public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
 {
     private Animator animator;
+    [SerializeField] private Transform player;
     
     [Header("Path")]
     [SerializeField] private LineRenderer lineRenderer;
@@ -231,11 +232,25 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
 
     private Vector3 GetTargetPosition()
     {
-        int randomPath = Random.Range(0, pathList.Count);
-        
-        Vector3 targetPos =  pathList[randomPath].position;
+        Vector3 playerPosition = player.position;
+
+        Transform closestPoint = null;
+        float closestDistanceSqr = Mathf.Infinity;
+
+        foreach (Transform point in pathList)
+        {
+            float distanceSqr = (playerPosition - point.position).sqrMagnitude;
+
+            if (distanceSqr < closestDistanceSqr)
+            {
+                closestDistanceSqr = distanceSqr;
+                closestPoint = point;
+            }
+        }
+
+        Vector3 targetPos = closestPoint.position;
         targetPos.y = 1f;
-        
+
         return targetPos;
     }
 }
