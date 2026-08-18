@@ -82,6 +82,17 @@
                     "isPartOfComposite": true
                 },
                 {
+                    "name": "",
+                    "id": "d792d1bc-bbcc-4878-bb20-9708ecbfe74b",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
                     "name": "1D Axis",
                     "id": "0d7e31bc-6f26-4a4e-9e06-4518efb05b34",
                     "path": "1DAxis",
@@ -107,6 +118,39 @@
                     "name": "positive",
                     "id": "8fd3450b-1b44-4d75-bf08-9c07afb8cb19",
                     "path": "<Keyboard>/d",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Turn",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "1D Axis",
+                    "id": "eaa5a735-11d2-4959-8915-2870b78c4be6",
+                    "path": "1DAxis",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Turn",
+                    "isComposite": true,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "negative",
+                    "id": "06a9e6c0-a00e-4119-9023-e2d92016d306",
+                    "path": "<DualShockGamepad>/leftStick/left",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Turn",
+                    "isComposite": false,
+                    "isPartOfComposite": true
+                },
+                {
+                    "name": "positive",
+                    "id": "58356901-fdc0-4802-9cfd-3f94fb3f9162",
+                    "path": "<DualShockGamepad>/leftStick/right",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
