@@ -1,8 +1,7 @@
 using UnityEngine;
 
-public class Knife : MonoBehaviour
+public class Outline : MonoBehaviour
 {
-    
     [SerializeField] MeshRenderer visualMesh;
     private Material outlineMat;
     

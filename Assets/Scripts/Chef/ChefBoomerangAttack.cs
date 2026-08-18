@@ -17,7 +17,7 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
     [Header("Knife")]
     [SerializeField] private Transform knifeHolder;
     [SerializeField] private Transform knife;
-    [SerializeField] private Knife knifeClass;
+    [SerializeField] private Outline outlineClass;
     [SerializeField] private float knifeRotateDuration = 0.8f;
     [SerializeField] private float travelDuration = 0.8f;
     [SerializeField] private float returnDuration = 0.8f;
@@ -210,7 +210,7 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
         knife.SetParent(null, true);
 
         knife.rotation = Quaternion.Euler(90f, 0f, 0f);
-        knifeClass.EnableOutline();
+        outlineClass.EnableOutline();
     }
 
     private void AttachKnife()
@@ -220,7 +220,7 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
         knife.localPosition = Vector3.zero;
         knife.localRotation = Quaternion.identity;
         
-        knifeClass.DisableOutline();
+        outlineClass.DisableOutline();
     }
 
     private void SetLineAlpha(float alpha)
