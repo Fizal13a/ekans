@@ -111,6 +111,7 @@ public class ChefPanAttack : MonoBehaviour, IChefAttack
         // yield return centerTween.WaitForCompletion();
         
         ThrowObject(pan,centerPosition);
+        StartSpinning();
         
         yield return new WaitForSeconds(2);
         
@@ -130,9 +131,7 @@ public class ChefPanAttack : MonoBehaviour, IChefAttack
         // ------------------------------------------------
         // 5. Start spinning
         // ------------------------------------------------
-
-        StartSpinning();
-
+        
         // ------------------------------------------------
         // 6. Wait before selecting points
         // ------------------------------------------------
