@@ -52,6 +52,10 @@ public class UIManager : MonoBehaviour
     [SerializeField] private float countdownStepDuration = 1f;
     [SerializeField] private float countdownPunchScale = 0.4f;
     
+    [Header("Chef")]
+    [SerializeField] private Image chefHealthBarImage;
+    [SerializeField] private Image chefHealthBarRedImage;
+    
     [Header("Body Limit Bar")] 
     [SerializeField] private Image greenFill;
     [SerializeField] private Image yellowFill;
@@ -109,6 +113,12 @@ public class UIManager : MonoBehaviour
         GameManager.events.AddEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
         GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
         GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
+        GameManager.events.AddEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
+    }
+
+    private void Start()
+    {
+        InitializeChefHealthBar();
     }
 
     #endregion
@@ -243,36 +253,6 @@ public class UIManager : MonoBehaviour
 
     #endregion
 
-    
-
-    public void PopUpDestroyedSegments()
-    {
-        foreach (TextMeshProUGUI popUp in segmentMultiplyPopUps)
-        {
-            if (popUp != null && !popUp.gameObject.activeInHierarchy)
-            {
-                popUp.gameObject.SetActive(true);
-                //popUp.text = $"x{1}";
-
-                popUp.transform.DOKill();
-                popUp.DOKill();
-
-                Color c = popUp.color;
-                c.a = 1f;
-                popUp.color = c;
-                popUp.transform.localScale = Vector3.zero;
-
-                DOTween.Sequence()
-                    .Append(popUp.transform.DOScale(Vector3.one, popUpScaleDuration).SetEase(Ease.OutBack))
-                    .AppendInterval(popUpHoldDuration)
-                    .Append(popUp.DOFade(0f, popUpFadeOutDuration))
-                    .OnComplete(() => { popUp.gameObject.SetActive(false); });
-
-                return;
-            }
-        }
-    }
-
     #region Count Down
 
      private void PlayCountdown(int from, Action onComplete)
@@ -387,6 +367,28 @@ public class UIManager : MonoBehaviour
 
     #endregion
 
+    #region Chef
+
+    private void InitializeChefHealthBar()
+    {
+        chefHealthBarImage.fillAmount = 1;
+        chefHealthBarRedImage.fillAmount = 1;
+    }
+
+    private void ChefHealthBar(float health)
+    {
+        StartCoroutine(ChefHealthBarCoroutine(health));
+    }
+
+    IEnumerator ChefHealthBarCoroutine(float health)
+    {
+        chefHealthBarImage.fillAmount = health;
+        yield return new WaitForSeconds(1f);
+        chefHealthBarRedImage.fillAmount = health;
+    }
+
+    #endregion
+
     #region Game Over
 
     public void GameOver(int score)
@@ -491,7 +493,6 @@ public class UIManager : MonoBehaviour
         bodyLimitText.text = $"{data.SegmentCount} / {data.MaxBodyLength}";
 
         float progress = Mathf.Clamp01(data.Percentage);
-        Debug.Log("Progress: " + progress);
         
         fillBars.Clear();
         
@@ -518,6 +519,34 @@ public class UIManager : MonoBehaviour
         }
 
         fillTween?.Kill(true);
+    }
+    
+    public void PopUpDestroyedSegments()
+    {
+        foreach (TextMeshProUGUI popUp in segmentMultiplyPopUps)
+        {
+            if (popUp != null && !popUp.gameObject.activeInHierarchy)
+            {
+                popUp.gameObject.SetActive(true);
+                //popUp.text = $"x{1}";
+
+                popUp.transform.DOKill();
+                popUp.DOKill();
+
+                Color c = popUp.color;
+                c.a = 1f;
+                popUp.color = c;
+                popUp.transform.localScale = Vector3.zero;
+
+                DOTween.Sequence()
+                    .Append(popUp.transform.DOScale(Vector3.one, popUpScaleDuration).SetEase(Ease.OutBack))
+                    .AppendInterval(popUpHoldDuration)
+                    .Append(popUp.DOFade(0f, popUpFadeOutDuration))
+                    .OnComplete(() => { popUp.gameObject.SetActive(false); });
+
+                return;
+            }
+        }
     }
 
     #endregion
@@ -571,6 +600,7 @@ public class UIManager : MonoBehaviour
         GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
         GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
         GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
+        GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
     }
 
     #endregion

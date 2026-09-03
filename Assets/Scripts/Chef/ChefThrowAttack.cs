@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class ChefThrowAttack : MonoBehaviour, IChefAttack
 {
+    public BossAttackType AttackType => BossAttackType.LightAttack;
+
     private Animator animator;
     [SerializeField] private Transform player;
 
@@ -205,13 +207,18 @@ public class ChefThrowAttack : MonoBehaviour, IChefAttack
 
         food.DOPath(path, throwDuration, PathType.CatmullRom)
             .SetEase(throwEase)
-            .OnComplete(() => PlayLandingSquash(food, baseScale));
+            .OnComplete(() =>
+            {
+                PlayLandingSquash(food, baseScale);
+                GameManager.events.TriggerEvent(GameEvents.EventType.OnDashTut);
+            });
     }
 
     private void PlayLandingSquash(Transform food, Vector3 baseScale)
     {
         if (!food.gameObject.activeSelf) return;
 
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnFoodDrop);
         Sequence landingSequence = DOTween.Sequence();
 
         landingSequence.Append(food

@@ -9,7 +9,9 @@ public class FoodSpawner : MonoBehaviour
     [SerializeField] private SnakeBodyController snakeBodyController;
     [SerializeField] private List<SnakeSegment> foodPrefabs;
 
-    [SerializeField] private int foodCount = 40;
+    [Header("Balancing")]
+    [SerializeField] private int foodPerTypeCount = 3; // how many of EACH type to spawn initially
+    [SerializeField] private int minFoodPerType = 2;    // never let a type's live count drop below this
 
     [SerializeField] private Vector2 arenaSize;
     [SerializeField] private Renderer spawnArea;
@@ -18,6 +20,8 @@ public class FoodSpawner : MonoBehaviour
     [SerializeField] private float highlightScaleMultiplier = 1.3f;
     [SerializeField] private float highlightDuration = 0.5f;
     [SerializeField] private Color highlightColor = Color.yellow;
+    
+    private bool canHighlight = true;
 
     private List<GameObject> spawnedFoods = new List<GameObject>();
     private List<SnakeSegment> spawnedFoodSegments = new List<SnakeSegment>();
@@ -32,11 +36,18 @@ public class FoodSpawner : MonoBehaviour
 
     #region Initialization
 
+    private void Awake()
+    {
+        canHighlight = true;
+    }
+
     private void OnEnable()
     {
         GameManager.events.AddEvent<SnakeBodyController>(GameEvents.EventType.OnSnakeInitialized, SpawnInitialFoods);
-        GameManager.events.AddEvent<SnakeBodyController>(GameEvents.EventType.OnAteRightFood, SpawnRandomFood);
         GameManager.events.AddEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
+        GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, RemoveFood);
+        GameManager.events.AddEvent(GameEvents.EventType.OnLengthZero, OnLengthZero);
+        GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackCompleted, ResetFoods);
     }
 
     #endregion
@@ -45,49 +56,112 @@ public class FoodSpawner : MonoBehaviour
 
     private void SpawnInitialFoods(SnakeBodyController snake)
     {
-        for (int i = 0; i < foodCount; i++)
+        // Spawn a fixed number of EACH available food type instead of picking randomly.
+        foreach (SnakeSegment prefab in foodPrefabs)
         {
-            int randomIndex = Random.Range(0, foodPrefabs.Count);
-
-            SnakeSegment food = Instantiate(
-                foodPrefabs[randomIndex],
-                GetRandomSpawnPosition(),
-                Quaternion.identity,
-                transform);
-            
-            spawnedFoods.Add(food.gameObject);
-            spawnedFoodSegments.Add(food);
-        }
-        
-        if(snake != null) HighlightFoodsOfType(snake);
-    }
-
-    public void SpawnRandomFood(SnakeBodyController snake)
-    {
-        Debug.Log("Spawning food on random position");
-        FoodType foodType = snake.TargetFood;
-
-        for (int i = 0; i < foodPrefabs.Count; i++)
-        {
-            if (foodPrefabs[i].FoodType == foodType)
+            for (int i = 0; i < foodPerTypeCount; i++)
             {
-                SnakeSegment food = Instantiate(
-                    foodPrefabs[i],
-                    GetRandomSpawnPosition(),
-                    Quaternion.identity,
-                    transform);
-            
-                spawnedFoods.Add(food.gameObject);
-                spawnedFoodSegments.Add(food);
-                
-                return;
+                SpawnFoodOfType(prefab);
             }
         }
+        
+        if(snake != null && canHighlight) HighlightFoodsOfType(snake);
+        canHighlight = false;
+    }
+
+    public void SpawnRandomFood()
+    {
+        // Prefer replenishing whichever type has fallen below the minimum.
+        SnakeSegment prefabToSpawn = GetPrefabNeedingReplenish();
+
+        if (prefabToSpawn == null)
+        {
+            // Every type already meets the minimum, so just spawn a random one.
+            prefabToSpawn = foodPrefabs[Random.Range(0, foodPrefabs.Count)];
+        }
+
+        SpawnFoodOfType(prefabToSpawn);
+    }
+
+    // Instantiates a food of a given prefab/type and registers it in the tracking lists.
+    private SnakeSegment SpawnFoodOfType(SnakeSegment prefab)
+    {
+        SnakeSegment food = Instantiate(
+            prefab,
+            GetRandomSpawnPosition(),
+            Quaternion.identity,
+            transform);
+
+        spawnedFoods.Add(food.gameObject);
+        spawnedFoodSegments.Add(food);
+
+        return food;
+    }
+
+    // Returns the prefab for the type that is currently most under the minimum count,
+    // or null if every type already meets/exceeds the minimum.
+    private SnakeSegment GetPrefabNeedingReplenish()
+    {
+        Dictionary<FoodType, int> counts = GetFoodTypeCounts();
+
+        SnakeSegment neediestPrefab = null;
+        int lowestCount = int.MaxValue;
+
+        foreach (SnakeSegment prefab in foodPrefabs)
+        {
+            counts.TryGetValue(prefab.FoodType, out int currentCount);
+
+            if (currentCount < minFoodPerType && currentCount < lowestCount)
+            {
+                lowestCount = currentCount;
+                neediestPrefab = prefab;
+            }
+        }
+
+        return neediestPrefab;
+    }
+
+    // Counts how many of each FoodType are currently alive in the scene.
+    private Dictionary<FoodType, int> GetFoodTypeCounts()
+    {
+        Dictionary<FoodType, int> counts = new Dictionary<FoodType, int>();
+
+        foreach (SnakeSegment segment in spawnedFoodSegments)
+        {
+            if (segment == null) continue; // destroyed food, ignore
+
+            if (counts.ContainsKey(segment.FoodType))
+                counts[segment.FoodType]++;
+            else
+                counts[segment.FoodType] = 1;
+        }
+
+        return counts;
     }
 
     #endregion
 
     #region Remove Food
+
+    private void OnLengthZero()
+    {
+        PlayerSpecialAttack playerSpecialAttack = new PlayerSpecialAttack();
+        playerSpecialAttack.availableFoods = new List<Transform>();
+        foreach (SnakeSegment segment in spawnedFoodSegments)
+        {
+            if(segment != null)
+                playerSpecialAttack.availableFoods.Add(segment.transform);
+        }
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnSpecialAttackTrigger, playerSpecialAttack);
+    }
+
+    private void RemoveFood(SnakeSegment food)
+    {
+        spawnedFoods.Remove(food.gameObject);
+        spawnedFoodSegments.Remove(food); // keep counts accurate for balancing
+        
+        SpawnRandomFood();
+    }
 
     public void RemoveFoods()
     {
@@ -96,6 +170,7 @@ public class FoodSpawner : MonoBehaviour
             Destroy(food);
         }
         spawnedFoods.Clear();
+        spawnedFoodSegments.Clear();
     }
 
     public void ResetFoods()
@@ -154,12 +229,6 @@ public class FoodSpawner : MonoBehaviour
                 Debug.Log("Highlighted food type: " + snake.TargetFood);
                 HighlightFood(seg.gameObject);
             }
-        }
-
-        if (!hasTargetFood)
-        {
-            SpawnRandomFood(snake);
-            HighlightFoodsOfType(snake);
         }
     }
 
@@ -235,11 +304,11 @@ public class FoodSpawner : MonoBehaviour
     private void OnDisable()
     {
         GameManager.events.RemoveEvent<SnakeBodyController>(GameEvents.EventType.OnSnakeInitialized, SpawnInitialFoods);
-        GameManager.events.RemoveEvent<SnakeBodyController>(GameEvents.EventType.OnAteRightFood, SpawnRandomFood);
+        GameManager.events.RemoveEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
+        GameManager.events.RemoveEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, RemoveFood);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnLengthZero, OnLengthZero);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnSpecialAttackCompleted, ResetFoods);
     }
 
     #endregion
-   
-
-  
 }

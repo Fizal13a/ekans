@@ -109,6 +109,15 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Dash"",
+                    ""type"": ""Button"",
+                    ""id"": ""73f48de1-f0c2-430e-8a42-34553e7fc6f3"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -243,6 +252,28 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
                     ""action"": ""Turn"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""9ca99438-27b2-4b00-948e-50b0b73ec7b8"",
+                    ""path"": ""<Keyboard>/shift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Dash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""ed8a66e9-236d-476e-9421-be27522bda4e"",
+                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Dash"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -253,6 +284,7 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
         m_Snake = asset.FindActionMap("Snake", throwIfNotFound: true);
         m_Snake_Move = m_Snake.FindAction("Move", throwIfNotFound: true);
         m_Snake_Turn = m_Snake.FindAction("Turn", throwIfNotFound: true);
+        m_Snake_Dash = m_Snake.FindAction("Dash", throwIfNotFound: true);
     }
 
     ~@SnakeInputs()
@@ -335,6 +367,7 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
     private List<ISnakeActions> m_SnakeActionsCallbackInterfaces = new List<ISnakeActions>();
     private readonly InputAction m_Snake_Move;
     private readonly InputAction m_Snake_Turn;
+    private readonly InputAction m_Snake_Dash;
     /// <summary>
     /// Provides access to input actions defined in input action map "Snake".
     /// </summary>
@@ -354,6 +387,10 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Snake/Turn".
         /// </summary>
         public InputAction @Turn => m_Wrapper.m_Snake_Turn;
+        /// <summary>
+        /// Provides access to the underlying input action "Snake/Dash".
+        /// </summary>
+        public InputAction @Dash => m_Wrapper.m_Snake_Dash;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -386,6 +423,9 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
             @Turn.started += instance.OnTurn;
             @Turn.performed += instance.OnTurn;
             @Turn.canceled += instance.OnTurn;
+            @Dash.started += instance.OnDash;
+            @Dash.performed += instance.OnDash;
+            @Dash.canceled += instance.OnDash;
         }
 
         /// <summary>
@@ -403,6 +443,9 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
             @Turn.started -= instance.OnTurn;
             @Turn.performed -= instance.OnTurn;
             @Turn.canceled -= instance.OnTurn;
+            @Dash.started -= instance.OnDash;
+            @Dash.performed -= instance.OnDash;
+            @Dash.canceled -= instance.OnDash;
         }
 
         /// <summary>
@@ -457,5 +500,12 @@ public partial class @SnakeInputs: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnTurn(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Dash" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnDash(InputAction.CallbackContext context);
     }
 }

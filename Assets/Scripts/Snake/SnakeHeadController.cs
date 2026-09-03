@@ -25,6 +25,16 @@ public class SnakeHeadController : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField] private float rotationSpeed = 15f;
+    private bool canMove = true;
+    
+    [Header("Dash")]
+    [SerializeField] private float dashDistance = 5f;
+    [SerializeField] private float dashDuration = 0.15f;
+    [SerializeField] private float dashCooldown = 1f;
+    [SerializeField] private List<TrailRenderer> dashTrailRenderers;
+
+    private bool isDashing;
+    private bool canDash = true;
     
     [Header("Power Up")]
     private float origionalSpeed;
@@ -74,15 +84,19 @@ public class SnakeHeadController : MonoBehaviour
         GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpCompleted, ResetAll);
         GameManager.events.AddEvent(GameEvents.EventType.OnLevelUp, OnLevelUp);
         GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, OnAteFood);
+        GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackTrigger, OnSpecialAttack);
+        GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackCompleted, OnSpecialAttackFinished);
 
         snakeInputs.Enable();
         snakeInputs.Snake.Turn.performed += OnTurn;
         snakeInputs.Snake.Turn.canceled += OnTurn;
+        snakeInputs.Snake.Dash.performed += OnDash;
     }
-    
+
     private void InitializeHead()
     {
         origionalSpeed = moveSpeed;
+        canMove = true;
         StartCoroutine(EnableCollision());
     }
     
@@ -130,6 +144,11 @@ public class SnakeHeadController : MonoBehaviour
 
         AnimateHeadBend();
     }
+    
+    private void OnDash(InputAction.CallbackContext obj)
+    {
+        Dash(transform.forward);
+    }
 
     #endregion
 
@@ -156,7 +175,7 @@ public class SnakeHeadController : MonoBehaviour
 
     private void Update()
     {
-        if(isGameOver || !isGameStarted) return;
+        if(isGameOver || !isGameStarted || !canMove) return;
         
         Rotate();
         MoveForward();
@@ -200,6 +219,63 @@ public class SnakeHeadController : MonoBehaviour
     private void OnWrongFoodAte()
     {
         
+    }
+
+    private void OnSpecialAttack()
+    {
+        canCollide = false;
+        canMove  = false;
+    }
+
+    private void OnSpecialAttackFinished()
+    {
+        canCollide = true;
+        canMove = true;
+    }
+    
+    public void Dash(Vector3 direction)
+    {
+        if (isDashing || !canDash)
+            return;
+
+        if (direction.sqrMagnitude <= 0.01f)
+            direction = transform.forward;
+
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnDash);
+        StartCoroutine(DashRoutine(direction.normalized));
+    }
+
+    private IEnumerator DashRoutine(Vector3 direction)
+    {
+        isDashing = true;
+        canDash = false;
+
+        foreach (var tr in dashTrailRenderers)
+        {
+            tr.emitting = true;
+        }
+
+        float elapsed = 0f;
+        float dashSpeed = dashDistance / dashDuration;
+
+        while (elapsed < dashDuration)
+        {
+            controller.Move(direction * dashSpeed * Time.deltaTime);
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        isDashing = false;
+        
+        foreach (var tr in dashTrailRenderers)
+        {
+            tr.emitting = false;
+        }
+
+        yield return new WaitForSeconds(dashCooldown);
+
+        canDash = true;
     }
 
     #endregion
@@ -264,11 +340,56 @@ public class SnakeHeadController : MonoBehaviour
             }
         }
 
-        if (other.gameObject.layer == LayerMask.NameToLayer("Obstacle"))
+        if (other.gameObject.layer != LayerMask.NameToLayer("Obstacle"))
+            return;
+
+        if (other.CompareTag("ChefAttack"))
         {
+            ChefAttackObject attackObject =
+                other.GetComponent<ChefAttackObject>();
+
+            if (attackObject == null)
+            {
+                GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
+                return;
+            }
+
+            // Already rebounding → ignore collision
+            if (attackObject.IsRebounding())
+            {
+                return;
+            }
+
+            // Attack object + dashing → rebound
+            if (isDashing)
+            {
+                attackObject.SetRebounding(true);
+
+                GameManager.events.TriggerEvent(
+                    GameEvents.EventType.OnChefAttackRebound,
+                    new ReboundEventData(
+                        attackObject,
+                        GameManager.Instance.GetBossTransform()
+                    )
+                );
+
+                Debug.Log("Rebound - " + other.gameObject.name);
+
+                return;
+            }
+
+            // Attack object + NOT dashing → Game Over
             GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
-            Debug.Log("Obstacle - ", other.gameObject);
+
+            Debug.Log("Attack Object → Game Over");
+
+            return;
         }
+
+        // Normal obstacle → Game Over
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
+
+        Debug.Log("Obstacle → Game Over");
     }
 
     #endregion
@@ -334,6 +455,8 @@ public class SnakeHeadController : MonoBehaviour
     {
         snakeInputs.Snake.Turn.performed -= OnTurn;
         snakeInputs.Snake.Turn.canceled -= OnTurn;
+        snakeInputs.Snake.Dash.performed -= OnDash;
+
         snakeInputs.Disable();
         
         GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, InitializeHead);
@@ -342,6 +465,8 @@ public class SnakeHeadController : MonoBehaviour
         GameManager.events.RemoveEvent(GameEvents.EventType.OnPowerUpCompleted, ResetAll);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnLevelUp, OnLevelUp);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnAteFood, OnAteFood);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnSpecialAttackTrigger, OnSpecialAttack);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnSpecialAttackCompleted, OnSpecialAttackFinished);
 
         bendTween?.Kill();
     }

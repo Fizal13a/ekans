@@ -7,6 +7,8 @@ using Random = UnityEngine.Random;
 
 public class ChefPanAttack : MonoBehaviour, IChefAttack
 {
+    public BossAttackType AttackType => BossAttackType.SpecialAttack;
+
     [Header("Spawn Area")]
     [SerializeField] private Transform spawnArea;
 
@@ -127,6 +129,8 @@ public class ChefPanAttack : MonoBehaviour, IChefAttack
             8,
             0.8f
         );
+        
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnPanThrow);
 
         // ------------------------------------------------
         // 5. Start spinning

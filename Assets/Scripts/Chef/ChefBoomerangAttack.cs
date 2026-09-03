@@ -7,6 +7,8 @@ using Random = UnityEngine.Random;
 
 public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
 {
+    public BossAttackType AttackType => BossAttackType.MidAttack;
+
     private Animator animator;
     [SerializeField] private Transform player;
     
@@ -97,6 +99,8 @@ public class ChefBoomerangAttack : MonoBehaviour, IChefAttack
 
         DetachKnife();
 
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnKnifeThrow);
+        
         Vector3 throwDirection =
             (targetPosition - knife.position).normalized;
 

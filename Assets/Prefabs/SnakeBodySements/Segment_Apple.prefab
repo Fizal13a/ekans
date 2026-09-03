@@ -255,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41f2bf7c697d95d47bc3958eee6a640c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  FoodType: 6
+  FoodType: 0
   arrowObject: {fileID: 1803916988034896889}
   visual: {fileID: 2234938904801979857}
   visualMesh: {fileID: 1103159580117161662}

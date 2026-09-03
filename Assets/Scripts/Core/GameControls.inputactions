@@ -1,0 +1,46 @@
+{
+    "version": 1,
+    "name": "GameControls",
+    "maps": [
+        {
+            "name": "Game",
+            "id": "7e694f79-0e53-4efa-8761-a1e39ba5d331",
+            "actions": [
+                {
+                    "name": "Skip",
+                    "type": "Button",
+                    "id": "dfb8b268-0b5f-4f95-b4e3-2c3e3bf5355f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d8197c7c-c4be-4676-b83e-e4b64562459c",
+                    "path": "<Mouse>/leftButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Skip",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "753e5968-4e19-4c46-aa38-9ebdccb4e3fe",
+                    "path": "<Gamepad>/buttonSouth",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Skip",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

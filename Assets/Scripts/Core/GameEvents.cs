@@ -20,9 +20,33 @@ public class GameEvents
         OnGameOverPanelTrigger,
         OnGameOver,
         
+        //Player
+        OnLengthZero,
+        OnSpecialAttackTrigger,
+        OnSpecialAttackCompleted,
+        OnCraftAttackUnlocked,
+        OnNewCraftAdded,
+        OnCraftItemCollected,
+        OnCraftAttackAdded,
+        OnCraftAttackCompleted,
+        
         //chef
         OnAttackStarted,
-        OnAttackFinished
+        OnAttackFinished,
+        OnChecfGotAttacked,
+        OnChefHealthReduced,
+        OnChefMidHealthReduced,
+        OnChefLowHealthReduced,
+        OnChefAttackRebound,
+        OnChefDead,
+        OnDashTut,
+        
+        //SFX
+        OnDash,
+        OnFoodDrop,
+        OnKnifeThrow,
+        OnPanThrow
+
     }
 
     private readonly Dictionary<EventType, List<Delegate>> eventListeners = new();

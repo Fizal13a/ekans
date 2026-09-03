@@ -4,7 +4,10 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance;
     public static GameEvents events { get; } = new GameEvents();
+    
+    [SerializeField] private Transform bossTransform;
     
     [Header("Time Scale")]
     private const float DefaultFixedDelta = 0.02f;
@@ -17,6 +20,14 @@ public class GameManager : MonoBehaviour
 
     #region Initialize
 
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+    }
+
     private void OnEnable()
     {
         events.AddEvent<bool>(GameEvents.EventType.OnFTUEStarted, StartTimeScaleTransition);
@@ -28,7 +39,7 @@ public class GameManager : MonoBehaviour
     {
         events.TriggerEvent(GameEvents.EventType.OnGameStart);
     }
-
+    
     #endregion
    
 
@@ -61,6 +72,20 @@ public class GameManager : MonoBehaviour
             })
             .SetEase(Ease.InOutSine)
             .SetUpdate(true);
+    }
+
+    #endregion
+
+    #region Boss
+
+    public void SetBossTransform(Transform bossTransform)
+    {
+        this.bossTransform = bossTransform;
+    }
+
+    public Transform GetBossTransform()
+    {
+        return bossTransform;
     }
 
     #endregion

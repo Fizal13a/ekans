@@ -15,6 +15,10 @@ public class SFXManager : MonoBehaviour
    public AudioSource ftueStart;
    public AudioSource ftueAte;
    public AudioSource ftueSegmentDissappear;
+   public AudioSource dashSource;
+   public AudioSource panSource;
+   public AudioSource knifeSource;
+   public AudioSource popSource;
    
    [Header("bg")]
    [SerializeField] private float minPitch = 0.6f;
@@ -34,6 +38,10 @@ public class SFXManager : MonoBehaviour
       GameManager.events.AddEvent(GameEvents.EventType.OnLevelUp, PlayLevelUp);
       GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpSelected, PlayChaosSelected);
       GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, PlayGameOver);
+      GameManager.events.AddEvent(GameEvents.EventType.OnDash, PlayDash);
+      GameManager.events.AddEvent(GameEvents.EventType.OnFoodDrop, PlayPop);
+      GameManager.events.AddEvent(GameEvents.EventType.OnKnifeThrow, PlayKnife);
+      GameManager.events.AddEvent(GameEvents.EventType.OnPanThrow, PlayPan);
    }
 
    #endregion
@@ -83,6 +91,26 @@ public class SFXManager : MonoBehaviour
       ftueSegmentDissappear.Play();
    }
 
+   public void PlayDash()
+   {
+      dashSource.Play();
+   }
+
+   public void PlayPan()
+   {
+      panSource.Play();
+   }
+
+   public void PlayPop()
+   {
+      popSource.Play();
+   }
+
+   public void PlayKnife()
+   {
+      knifeSource.Play();
+   }
+
    #endregion
 
    #region Pitch
@@ -111,6 +139,10 @@ public class SFXManager : MonoBehaviour
       GameManager.events.RemoveEvent(GameEvents.EventType.OnLevelUp, PlayLevelUp);
       GameManager.events.RemoveEvent(GameEvents.EventType.OnPowerUpSelected, PlayChaosSelected);
       GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, PlayGameOver);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnDash, PlayDash);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnFoodDrop, PlayPop);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnKnifeThrow, PlayKnife);
+      GameManager.events.RemoveEvent(GameEvents.EventType.OnPanThrow, PlayPan);
    }
 
    #endregion

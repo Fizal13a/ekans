@@ -51,8 +51,8 @@ public class SnakeBodyController : MonoBehaviour
     [SerializeField] private int pointsPerSegment = 5;
     
     [Header("Food Data")]
+    [SerializeField] private int maxFood = 10;
     int foodCount = 0;
-    private int maxFood = 10;
     private int score = 0;
     
     [Header("Snake Stats")]
@@ -98,7 +98,7 @@ public class SnakeBodyController : MonoBehaviour
     public int Length => segments.Count;
 
     private readonly List<Vector3> path = new();
-    private readonly List<SnakeSegment> segments = new();
+    private List<SnakeSegment> segments = new();
 
     private Vector3 lastRecordedPosition;
 
@@ -110,6 +110,8 @@ public class SnakeBodyController : MonoBehaviour
        GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
        GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, TriggerGameOver);
        GameManager.events.AddEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
+       GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackCompleted, SpawnStartingSnake);
+       GameManager.events.AddEvent(GameEvents.EventType.OnChefMidHealthReduced, StartAutoSpawn);
     }
 
     private void Initialize()
@@ -125,6 +127,10 @@ public class SnakeBodyController : MonoBehaviour
         canAddSegments = true;
         SpawnStartingSnake();
         UpdateBodyLimitUI();
+    }
+
+    private void StartAutoSpawn()
+    {
         CheckAndSpawnSegmentsRoutine =  StartCoroutine(CheckAndSpawnSegments());
     }
     
@@ -142,7 +148,7 @@ public class SnakeBodyController : MonoBehaviour
         
             int randomIndex = Random.Range(0, availableFoodSegments.Count);
             AddSegment(availableFoodSegments[randomIndex]);
-            FTUEController.Instance.OnFoodAdded();
+            //FTUEController.Instance.OnFoodAdded();
         }
     }
     
@@ -226,6 +232,7 @@ public class SnakeBodyController : MonoBehaviour
 
     public void AddEatenSegment(SnakeSegment segment)
     {
+        Debug.Log("Adding eaten segment");
         foreach (var food in availableFoodSegments)
         {
             if (food.FoodType == segment.FoodType)
@@ -288,6 +295,12 @@ public class SnakeBodyController : MonoBehaviour
         
         float levelValue = foodCount / (float)maxFood;
         GameManager.events.TriggerEvent<float>(GameEvents.EventType.OnSegmentRemoved, levelValue);
+
+        if (segments.Count <= 0)
+        {
+            Debug.Log("Food count: " + segments.Count);
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnLengthZero);
+        }
     }
     
     //ANIMATE
@@ -323,6 +336,10 @@ public class SnakeBodyController : MonoBehaviour
 
     private void OnNewFoodAte(SnakeSegment segment)
     {
+
+        if (segments.Count == 0)
+            return;
+        
         if (IsTheTargetFood(segment.FoodType))
         {
             RemoveSegment();
@@ -477,6 +494,8 @@ public class SnakeBodyController : MonoBehaviour
         GameManager.events.RemoveEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnGameOver, TriggerGameOver);
         GameManager.events.RemoveEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnSpecialAttackCompleted, SpawnStartingSnake);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnChefMidHealthReduced, StartAutoSpawn);
     }
 
     #endregion
