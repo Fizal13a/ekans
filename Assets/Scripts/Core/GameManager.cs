@@ -96,6 +96,7 @@ public class GameManager : MonoBehaviour
     {
         events.RemoveEvent<bool>(GameEvents.EventType.OnFTUEStarted, StartTimeScaleTransition);
         events.RemoveEvent<bool>(GameEvents.EventType.OnFTUEStopped, StartTimeScaleTransition);
+        events.RemoveEvent(GameEvents.EventType.OnPowerUpSelected, StartTimeScaleTransition);
     }
 
     #endregion

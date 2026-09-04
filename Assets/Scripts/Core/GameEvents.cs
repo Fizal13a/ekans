@@ -17,6 +17,7 @@ public class GameEvents
         OnLevelUp,
         OnPowerUpSelected,
         OnPowerUpCompleted,
+        OnCountDownFinished,
         OnGameOverPanelTrigger,
         OnGameOver,
         
@@ -26,6 +27,7 @@ public class GameEvents
         OnSpecialAttackCompleted,
         OnCraftAttackUnlocked,
         OnNewCraftAdded,
+        OnResetCraftsCollected,
         OnCraftItemCollected,
         OnCraftAttackAdded,
         OnCraftAttackCompleted,

@@ -181,6 +181,7 @@ public class ChefController : MonoBehaviour
                 {
                     other.gameObject.SetActive(false);
                     Debug.Log("Chef Attacked!");
+                    chefAttackObject.SetRebounding(false);
                     GameManager.events.TriggerEvent(GameEvents.EventType.OnChecfGotAttacked, 10);
                 }
             }

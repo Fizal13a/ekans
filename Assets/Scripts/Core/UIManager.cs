@@ -22,6 +22,7 @@ public class UIManager : MonoBehaviour
     public List<Transform> gameOverStaggerElements;
     public List<RectTransform> gameOverFloatingDecor;
     public TextMeshProUGUI gameOverScoreText;
+    public GameObject demoCompletedPanel;
 
     [Header("PowerUp")] 
     public List<ChaosScriptableObject> positiveChaosScriptableObjects;
@@ -113,6 +114,7 @@ public class UIManager : MonoBehaviour
         GameManager.events.AddEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
         GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
         GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
+        GameManager.events.AddEvent(GameEvents.EventType.OnChefDead, DemoCompleted);
         //GameManager.events.AddEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
     }
 
@@ -146,6 +148,12 @@ public class UIManager : MonoBehaviour
             levelText.transform.DOPunchScale(Vector3.one * levelTextPunchScale, levelTextPunchDuration, vibrato: 8,
                 elasticity: 0.8f);
         }
+    }
+
+    private void DemoCompleted()
+    {
+        Time.timeScale = 0;
+        demoCompletedPanel.SetActive(true);
     }
 
     #endregion
@@ -600,6 +608,7 @@ public class UIManager : MonoBehaviour
         GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
         GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
         GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnChefDead, DemoCompleted);
         //GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
     }
 

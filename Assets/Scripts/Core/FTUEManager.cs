@@ -1,9 +1,12 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class FTUEManager : MonoBehaviour
 {
+    [SerializeField] private FoodSpawner foodSpawner;
+    
     public bool canShowTutorial = true;
     private GameControls gameControls;
     
@@ -11,8 +14,10 @@ public class FTUEManager : MonoBehaviour
     private bool snakeLengthDone = false;
     private bool dashOnFoodDone = false;
     private bool specialAttackDone  = false;
+    private bool craftUnlocked  = false;
     
     private bool isShowingTutorial = false;
+    private bool canSkip = false;
     
     public CanvasGroup controlsTut;
     public CanvasGroup firstFoodTut;
@@ -39,15 +44,17 @@ public class FTUEManager : MonoBehaviour
         GameManager.events.AddEvent(GameEvents.EventType.OnAteWrongFood, SnakeLengthTut);
         GameManager.events.AddEvent(GameEvents.EventType.OnDashTut, DashOnFoodTut);
         GameManager.events.AddEvent(GameEvents.EventType.OnLengthZero, SpecialAttackTUT);
-        GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackUnlocked, OrderTut);
+        GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpSelected, OrderTut);
     }
 
     private void OnSkipPressed(InputAction.CallbackContext obj)
     {
         if(!isShowingTutorial) return;
+        if(!canSkip) return;
         
         GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStopped, false);
         Initialize();
+        canSkip = false;
     }
 
     private void Initialize()
@@ -58,6 +65,13 @@ public class FTUEManager : MonoBehaviour
         orderTut.gameObject.SetActive(false);
         dashOnFoodTut.gameObject.SetActive(false);
         specialAttackTut.gameObject.SetActive(false);
+        
+        controlsTut.transform.GetChild(2).gameObject.SetActive(false);
+        firstFoodTut.transform.GetChild(2).gameObject.SetActive(false);
+        snakeLengthTut.transform.GetChild(2).gameObject.SetActive(false);
+        orderTut.transform.GetChild(2).gameObject.SetActive(false);
+        dashOnFoodTut.transform.GetChild(2).gameObject.SetActive(false);
+        specialAttackTut.transform.GetChild(2).gameObject.SetActive(false);
 
         snakeLengthHUD.sortingOrder = 0;
         orderHUD.sortingOrder = 0;
@@ -69,6 +83,8 @@ public class FTUEManager : MonoBehaviour
         
         isShowingTutorial = true;
         GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
+        
+        StartCoroutine(EnableContinueMessage(controlsTut.transform.GetChild(2).gameObject));
     }
 
     public void FirstFoodTut()
@@ -80,6 +96,9 @@ public class FTUEManager : MonoBehaviour
         
         isShowingTutorial = true;
         GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
+        
+        foodSpawner.StopHighlights();
+        StartCoroutine(EnableContinueMessage(firstFoodTut.transform.GetChild(2).gameObject));
     }
 
     public void SnakeLengthTut()
@@ -88,11 +107,14 @@ public class FTUEManager : MonoBehaviour
         {
             snakeLengthDone = true;
             snakeLengthTut.gameObject.SetActive(true);
-        
-            snakeLengthHUD.sortingOrder = 1;
+            
+            snakeLengthHUD.sortingOrder = 3;
+            orderHUD.sortingOrder = 0;
         
             isShowingTutorial = true;
             GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
+            
+            StartCoroutine(EnableContinueMessage(snakeLengthTut.transform.GetChild(2).gameObject));
         }
     }
 
@@ -105,6 +127,8 @@ public class FTUEManager : MonoBehaviour
         
         isShowingTutorial = true;
         GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
+        
+        StartCoroutine(EnableContinueMessage(dashOnFoodTut.transform.GetChild(2).gameObject));
     }
 
     public void SpecialAttackTUT()
@@ -116,16 +140,31 @@ public class FTUEManager : MonoBehaviour
         
         isShowingTutorial = true;
         GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
+        
+        StartCoroutine(EnableContinueMessage(specialAttackTut.transform.GetChild(2).gameObject));
     }
 
     public void OrderTut()
     {
+        if(craftUnlocked) return;
+        
+        craftUnlocked = true;
         orderTut.gameObject.SetActive(true);
         
-        orderHUD.sortingOrder = 1;
+        snakeLengthHUD.sortingOrder = 0;
+        orderHUD.sortingOrder = 3;
         
         isShowingTutorial = true;
         GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
+        
+        StartCoroutine(EnableContinueMessage(orderTut.transform.GetChild(2).gameObject));
+    }
+
+    IEnumerator EnableContinueMessage(GameObject obj)
+    {
+        yield return new WaitForSecondsRealtime(2f);
+        obj.SetActive(true);
+        canSkip = true;
     }
 
     private void OnDisable()
@@ -133,6 +172,7 @@ public class FTUEManager : MonoBehaviour
         gameControls.Game.Skip.performed -= OnSkipPressed;
         gameControls.Enable();
         
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnGameStart, ControlsTut);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnAteRightFood, FirstFoodTut);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnAteWrongFood, SnakeLengthTut);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnDashTut, DashOnFoodTut);

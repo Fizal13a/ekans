@@ -6,6 +6,8 @@ public class PlayerCraftAttack : MonoBehaviour
 {
     [SerializeField]
     private List<FoodType> currentRecipe;
+    
+    [SerializeField] private ParticleSystem craftedParticles;
 
     private bool canAttack = false;
     private int currentIndex;
@@ -73,7 +75,7 @@ public class PlayerCraftAttack : MonoBehaviour
         Debug.Log("COMBO COMPLETE!");
 
         currentIndex = 0;
-
+        craftedParticles.Play();
         GameManager.events.TriggerEvent(GameEvents.EventType.OnCraftAttackCompleted);
         Debug.Log("Chef Attacked!");
         GameManager.events.TriggerEvent(GameEvents.EventType.OnChecfGotAttacked, 15);
