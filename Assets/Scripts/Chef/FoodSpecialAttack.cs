@@ -236,6 +236,7 @@ public class FoodSpecialAttack : MonoBehaviour
         // alongside the impact shake above, not after it.
         ReturnCameraToRest();
 
+        Debug.Log("Chef Attacked!");
         GameManager.events.TriggerEvent(GameEvents.EventType.OnChecfGotAttacked, damage);
         StartCoroutine(RestartGame());
 

@@ -113,7 +113,7 @@ public class UIManager : MonoBehaviour
         GameManager.events.AddEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
         GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
         GameManager.events.AddEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
-        GameManager.events.AddEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
+        //GameManager.events.AddEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
     }
 
     private void Start()
@@ -600,7 +600,7 @@ public class UIManager : MonoBehaviour
         GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnSegmentRemoved, IncrementLevelBar);
         GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, IncrementLevel);
         GameManager.events.RemoveEvent<LevelUpData>(GameEvents.EventType.OnLevelUp, OpenPowerUpPanel);
-        GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
+        //GameManager.events.RemoveEvent<float>(GameEvents.EventType.OnChefHealthReduced, ChefHealthBar);
     }
 
     #endregion

@@ -24,6 +24,7 @@ public class PlayerCraftAttack : MonoBehaviour
     private void OnNewCraftAdded(RecipieAttackData  data)
     {
         currentIndex = 0;
+        currentRecipe.Clear();
         
         foreach (FoodType foodType in data.recipie)
         {
@@ -74,6 +75,7 @@ public class PlayerCraftAttack : MonoBehaviour
         currentIndex = 0;
 
         GameManager.events.TriggerEvent(GameEvents.EventType.OnCraftAttackCompleted);
+        Debug.Log("Chef Attacked!");
         GameManager.events.TriggerEvent(GameEvents.EventType.OnChecfGotAttacked, 15);
         // Trigger player attack
     }

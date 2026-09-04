@@ -37,7 +37,7 @@ public class RecipeUI : MonoBehaviour
 
     public void HighlightRecipe(int index)
     {
-        recipieHighlightImages[index].enabled = false;
+        recipieHighlightImages[index].enabled = true;
     }
 
     public void UpdateProgress(int currentIndex)
