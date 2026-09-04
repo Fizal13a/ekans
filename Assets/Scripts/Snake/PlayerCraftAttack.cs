@@ -59,6 +59,7 @@ public class PlayerCraftAttack : MonoBehaviour
         else
         {
             currentIndex = 0;
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnResetCraftsCollected);
 
             // Important:
             // Check if this newly collected food can
