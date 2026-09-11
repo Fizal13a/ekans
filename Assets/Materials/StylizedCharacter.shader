@@ -20,8 +20,8 @@ Shader "Custom/StylizedCharacter_New"
 
         _Saturation ("Saturation", Range(0,2)) = 1.1
 
-[Toggle] _UseBaseMapEmission ("Use Base Map as Emission", Float) = 0
-_EmissionStrength ("Emission Strength", Range(0,5)) = 0.0
+        [Toggle] _UseBaseMapEmission ("Use Base Map as Emission", Float) = 0
+        _EmissionStrength ("Emission Strength", Range(0,5)) = 0.0
 
         // OUTLINE
         _OutlineColor ("Outline Color", Color) = (0.05,0.025,0.02,1)
@@ -60,6 +60,11 @@ _EmissionStrength ("Emission Strength", Range(0,5)) = 0.0
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
             #pragma multi_compile _ _SHADOWS_SOFT
+
+            // Additional (point/spot) light support
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -102,8 +107,8 @@ _EmissionStrength ("Emission Strength", Range(0,5)) = 0.0
 
                 float _Saturation;
 
-              float _UseBaseMapEmission;
-float _EmissionStrength;
+                float _UseBaseMapEmission;
+                float _EmissionStrength;
 
                 float4 _OutlineColor;
                 float _OutlineWidth;
@@ -189,6 +194,9 @@ float _EmissionStrength;
                 float3 lightDir =
                     normalize(mainLight.direction);
 
+                // mainLight.color already bakes in light intensity
+                float3 lightColor = mainLight.color;
+
                 float NdotL =
                     dot(normalWS, lightDir);
 
@@ -220,8 +228,11 @@ float _EmissionStrength;
                         lightValue
                     );
 
+                // Lit color is now actually driven by the main light's color/intensity
+                float3 litColor =
+                    baseColor * lightColor;
 
-                // Dark → Shadow → Full Color
+                // Dark → Shadow → Lit (tinted by main light)
 
                 float3 color =
                     lerp(
@@ -233,7 +244,7 @@ float _EmissionStrength;
                 color =
                     lerp(
                         color,
-                        baseColor,
+                        litColor,
                         shadowBand
                     );
 
@@ -249,6 +260,24 @@ float _EmissionStrength;
                     ambient *
                     baseColor *
                     _AmbientStrength;
+
+
+                // ----------------------------------------------------
+                // ADDITIONAL LIGHTS (point / spot)
+                // ----------------------------------------------------
+
+                #ifdef _ADDITIONAL_LIGHTS
+                    uint additionalLightsCount = GetAdditionalLightsCount();
+                    for (uint lightIndex = 0u; lightIndex < additionalLightsCount; lightIndex++)
+                    {
+                        Light addLight = GetAdditionalLight(lightIndex, IN.positionWS);
+
+                        float addNdotL = saturate(dot(normalWS, addLight.direction));
+                        float addAtten = addLight.distanceAttenuation * addLight.shadowAttenuation;
+
+                        color += baseColor * addLight.color * addNdotL * addAtten;
+                    }
+                #endif
 
 
                 // ----------------------------------------------------
@@ -275,14 +304,14 @@ float _EmissionStrength;
                     _RimStrength;
 
 
-             // ----------------------------------------------------
-// EMISSION
-// ----------------------------------------------------
+                // ----------------------------------------------------
+                // EMISSION
+                // ----------------------------------------------------
 
-if (_UseBaseMapEmission > 0.5)
-{
-    color += baseColor * _EmissionStrength;
-}
+                if (_UseBaseMapEmission > 0.5)
+                {
+                    color += baseColor * _EmissionStrength;
+                }
 
 
                 // ----------------------------------------------------
@@ -354,6 +383,10 @@ if (_UseBaseMapEmission > 0.5)
                 float4 positionCS : SV_POSITION;
             };
 
+            // NOTE: this CBUFFER layout must match the main pass exactly
+            // (same fields, same order) for SRP Batcher compatibility.
+            // The old version referenced a non-existent _EmissionColor
+            // property here, which mismatched the main pass — fixed below.
             CBUFFER_START(UnityPerMaterial)
 
                 float4 _BaseMap_ST;
@@ -374,7 +407,7 @@ if (_UseBaseMapEmission > 0.5)
 
                 float _Saturation;
 
-                float4 _EmissionColor;
+                float _UseBaseMapEmission;
                 float _EmissionStrength;
 
                 float4 _OutlineColor;
