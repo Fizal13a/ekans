@@ -502,6 +502,9 @@ public class UIManager : MonoBehaviour
 
         float progress = Mathf.Clamp01(data.Percentage);
         
+        if(data.SegmentCount >= 10)
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnSnakeLengthWarning);
+        
         fillBars.Clear();
         
         fillBars.Add(greenFill);

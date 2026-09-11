@@ -153,6 +153,8 @@ public class ChefThrowAttack : MonoBehaviour, IChefAttack
 
             yield return new WaitForSeconds(0.5f);
         }
+        
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnDashTut);
 
         // -----------------------------------------
         // 5. Keep everything for 3 seconds
@@ -210,7 +212,6 @@ public class ChefThrowAttack : MonoBehaviour, IChefAttack
             .OnComplete(() =>
             {
                 PlayLandingSquash(food, baseScale);
-                GameManager.events.TriggerEvent(GameEvents.EventType.OnDashTut);
             });
     }
 

@@ -47,7 +47,10 @@ public class GameEvents
         OnDash,
         OnFoodDrop,
         OnKnifeThrow,
-        OnPanThrow
+        OnPanThrow,
+        
+        //FTUE
+        OnSnakeLengthWarning,
 
     }
 
