@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using DG.Tweening;
 using Random = UnityEngine.Random;
 
 public class ChefController : MonoBehaviour
@@ -15,6 +16,9 @@ public class ChefController : MonoBehaviour
     [SerializeField] private int lowHealth;
     [SerializeField] private Transform chefHitPoint;
     [SerializeField] private ParticleSystem chefHitParticle;
+
+    [SerializeField] private Transform plate;
+    private Vector3 plateInitialPosition;
     
     [Header("Attack Settings")]
     [SerializeField] private float minAttackDelay = 3f;
@@ -25,6 +29,8 @@ public class ChefController : MonoBehaviour
     private List<IChefAttack> availableAttacks = new List<IChefAttack>();
 
     private Coroutine attackRoutine;
+
+    private bool canStartAttacking = false;
     
     #region Initialization
     
@@ -45,20 +51,25 @@ public class ChefController : MonoBehaviour
                 availableAttacks.Add(attack);
             }
         }
+        
+        plateInitialPosition = plate.position;
     }
 
     private void OnEnable()
     {
+        GameManager.events.AddEvent(GameEvents.EventType.CanStartChefAttack, CanStartAttack);
         GameManager.events.AddEvent(GameEvents.EventType.OnAttackFinished, OnAttackFinished);
         GameManager.events.AddEvent<int>(GameEvents.EventType.OnChecfGotAttacked, ReduceHealth);
         GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackTrigger, StopAttacking);
         GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackCompleted, StartAttacking);
+        GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackStarted, StopAttacking);
+        GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackStarted, PlateFall);
+        GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackCompleted, StartAttacking);
     }
 
     private void Start()
     {
         GameManager.Instance.SetBossTransform(chefHitPoint);
-        StartAttacking();
         currentHealth = maxHealth;
     }
     
@@ -66,8 +77,18 @@ public class ChefController : MonoBehaviour
 
     #region Attack
 
+    private void CanStartAttack()
+    {
+        if(canStartAttacking) return;
+        
+        canStartAttacking = true;
+        StartAttacking();
+    }
+
     private void StartAttacking()
     {
+        if(!canStartAttacking) return;
+        
         attackRoutine = StartCoroutine(AttackRoutine());
     }
 
@@ -168,6 +189,13 @@ public class ChefController : MonoBehaviour
 
     #endregion
 
+    private void PlateFall()
+    {
+        plate.gameObject.SetActive(true);
+        plate.gameObject.GetComponent<Rigidbody>().isKinematic = false;
+        //plate.DOMoveY(transform.position.y, 1f).SetEase(Ease.OutExpo);
+    }
+
     #region Collision
 
     private void OnTriggerEnter(Collider other)
@@ -186,6 +214,15 @@ public class ChefController : MonoBehaviour
                 }
             }
         }
+
+        if (other.CompareTag("Plate"))
+        {
+            other.gameObject.SetActive(false);
+            plate.gameObject.GetComponent<Rigidbody>().isKinematic = true;
+            plate.position = plateInitialPosition;
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnChecfGotAttacked, 10);
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnCraftAttackCompleted);
+        }
     }
 
     #endregion
@@ -194,6 +231,7 @@ public class ChefController : MonoBehaviour
 
     private void OnDestroy()
     {
+        GameManager.events.RemoveEvent(GameEvents.EventType.CanStartChefAttack, CanStartAttack);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnAttackFinished, OnAttackFinished);
         GameManager.events.RemoveEvent<int>(GameEvents.EventType.OnChecfGotAttacked, ReduceHealth);
         GameManager.events.RemoveEvent(GameEvents.EventType.OnSpecialAttackTrigger, StopAttacking);

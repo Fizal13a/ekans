@@ -8,6 +8,7 @@ TagManager:
   - GoldenBurger
   - FxTemporaire
   - ChefAttack
+  - Plate
   layers:
   - Default
   - TransparentFX

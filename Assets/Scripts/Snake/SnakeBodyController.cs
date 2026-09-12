@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+using Random = UnityEngine.Random;
 
 public struct SegmentAddedData
 {
@@ -47,7 +49,7 @@ public class SnakeBodyController : MonoBehaviour
 
     [Header("Movement")]
     [SerializeField] private float followSpeed = 2f;
-    [SerializeField] private float recordDistance = 0.2f;
+    [SerializeField] private float recordDistance = 0.05f;
     [SerializeField] private int pointsPerSegment = 5;
     
     [Header("Food Data")]
@@ -178,20 +180,29 @@ public class SnakeBodyController : MonoBehaviour
 
     #region Update
 
-    private void LateUpdate()
+    private void Update()
     {
         UpdatePath();
         UpdateBody();
     }
-    
+
     void UpdatePath()
     {
-        if (Vector3.Distance(lastRecordedPosition, head.position) < recordDistance)
+        float distance = Vector3.Distance(lastRecordedPosition, head.position);
+
+        if (distance < recordDistance)
             return;
 
-        lastRecordedPosition = head.position;
+        Vector3 direction = (head.position - lastRecordedPosition).normalized;
 
-        path.Insert(0, head.position);
+        while (distance >= recordDistance)
+        {
+            lastRecordedPosition += direction * recordDistance;
+
+            path.Insert(0, lastRecordedPosition);
+
+            distance = Vector3.Distance(lastRecordedPosition, head.position);
+        }
 
         if (path.Count > 1000)
             path.RemoveAt(path.Count - 1);
@@ -201,27 +212,56 @@ public class SnakeBodyController : MonoBehaviour
     {
         for (int i = 0; i < segments.Count; i++)
         {
-            int index = Mathf.Min((i + 1) * pointsPerSegment, path.Count - 1);
+            float targetDistance = (i + 1) * pointsPerSegment * recordDistance;
 
-            segments[i].transform.position = path[index];
+            Vector3 targetPosition = GetPositionAtDistance(targetDistance);
 
-            Vector3 dir = path[Mathf.Max(index - 1, 0)] - path[index];
+            segments[i].transform.position = targetPosition;
+
+            Vector3 dir = path.Count > 1
+                ? path[Mathf.Min(i * pointsPerSegment, path.Count - 1)] - targetPosition
+                : head.forward;
 
             if (dir.sqrMagnitude > 0.001f)
             {
-                segments[i].transform.position = Vector3.MoveTowards(
-                    segments[i].transform.position,
-                    path[index],
-                    followSpeed * Time.deltaTime);
-                
                 Quaternion targetRotation = Quaternion.LookRotation(dir);
 
                 segments[i].transform.rotation = Quaternion.RotateTowards(
                     segments[i].transform.rotation,
                     targetRotation,
-                    720f * Time.deltaTime);
+                    720f * Time.deltaTime
+                );
             }
         }
+    }
+
+    Vector3 GetPositionAtDistance(float distance)
+    {
+        if (path.Count == 0)
+            return head.position;
+
+        float travelled = 0f;
+
+        for (int i = 0; i < path.Count - 1; i++)
+        {
+            Vector3 current = path[i];
+            Vector3 next = path[i + 1];
+
+            float segmentDistance = Vector3.Distance(current, next);
+
+            if (travelled + segmentDistance >= distance)
+            {
+                float remaining = distance - travelled;
+
+                float t = remaining / segmentDistance;
+
+                return Vector3.Lerp(current, next, t);
+            }
+
+            travelled += segmentDistance;
+        }
+
+        return path[path.Count - 1];
     }
 
     #endregion
@@ -344,6 +384,7 @@ public class SnakeBodyController : MonoBehaviour
         {
             RemoveSegment();
             GameManager.events.TriggerEvent(GameEvents.EventType.OnAteRightFood, this);
+            GameManager.events.TriggerEvent(GameEvents.EventType.CanStartChefAttack);
         }
         else
         {

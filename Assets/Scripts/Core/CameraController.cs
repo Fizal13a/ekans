@@ -1,5 +1,7 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class CameraController : MonoBehaviour
 {
@@ -20,6 +22,15 @@ public class CameraController : MonoBehaviour
 
     [Header("Camera Bounds")]
     [SerializeField] private float minimumCameraZ = -30f;
+    
+    [Header("Polish - Zoom Out Sequence")]
+    [SerializeField] private Transform cameraZoomOutTarget;
+    [SerializeField] private float zoomOutTransitionDuration = 1f;
+    [SerializeField] private float zoomOutHoldDuration = 2f;
+    [SerializeField] private Ease zoomOutEase = Ease.InOutSine;
+
+    private bool isInZoomOutSequence;
+    private Sequence zoomOutSequence;
 
     [Header("Polish - Camera Shake")]
     [SerializeField] private float eatShakeStrength = 0.15f;
@@ -44,6 +55,7 @@ public class CameraController : MonoBehaviour
     private float currentBank;
 
     private Vector3 lastTargetForward;
+    private Vector3 baseRotationEuler;
 
     private Tweener shakeTween;
     private Sequence zoomKickSequence;
@@ -59,10 +71,22 @@ public class CameraController : MonoBehaviour
 
         currentHeight = minHeight;
         lastTargetForward = target.forward;
+        baseRotationEuler = transform.eulerAngles;
+    }
+
+    private void OnEnable()
+    {
+        GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, ShakeOnEat);
+        GameManager.events.AddEvent(GameEvents.EventType.OnLevelUp, ShakeOnLevelUp);
+        GameManager.events.AddEvent(GameEvents.EventType.OnChefAttackRebound, PlayZoomOutSequence);
+        GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackStarted, PlayZoomOutSequence);
     }
 
     private void LateUpdate()
     {
+        if (isInZoomOutSequence)
+            return;
+
         UpdateZoom();
 
         Vector3 desiredPosition = target.position;
@@ -138,6 +162,44 @@ public class CameraController : MonoBehaviour
 
         transform.rotation = Quaternion.Euler(rotation);
     }
+    
+    /// <summary>
+    /// Moves the camera to cameraZoomOutTarget's position/rotation, holds for a
+    /// moment, then resumes normal player-following behaviour.
+    /// </summary>
+    public void PlayZoomOutSequence()
+    {
+        if (cameraZoomOutTarget == null)
+        {
+            Debug.LogWarning($"{nameof(CameraController)}: cameraZoomOutTarget is not assigned.");
+            return;
+        }
+
+        zoomOutSequence?.Kill();
+        shakeTween?.Kill();
+        zoomKickSequence?.Kill();
+
+        isInZoomOutSequence = true;
+        velocity = Vector3.zero;
+
+        zoomOutSequence = DOTween.Sequence()
+            .Append(transform.DOMove(cameraZoomOutTarget.position, zoomOutTransitionDuration).SetEase(zoomOutEase))
+            .Join(transform.DORotateQuaternion(cameraZoomOutTarget.rotation, zoomOutTransitionDuration).SetEase(zoomOutEase))
+            .AppendInterval(zoomOutHoldDuration)
+            .OnComplete(ResumeFollowing);
+    }
+
+    private void ResumeFollowing()
+    {
+        isInZoomOutSequence = false;
+        velocity = Vector3.zero;
+
+        // Restore the camera's original pitch/yaw; only z (bank) should
+        // remain dynamic, and UpdateBank will take over from here.
+        currentBank = 0f;
+        lastTargetForward = target.forward;
+        transform.rotation = Quaternion.Euler(baseRotationEuler.x, baseRotationEuler.y, 0f);
+    }
 
     /// <summary>
     /// Plays a small camera shake and zoom kick when food is eaten.
@@ -192,10 +254,19 @@ public class CameraController : MonoBehaviour
                     zoomKickDuration * 0.6f)
                 .SetEase(Ease.OutElastic));
     }
+    
+    private void OnDisable()
+    {
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnAteFood, ShakeOnEat);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnLevelUp, ShakeOnLevelUp);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnChefAttackRebound, PlayZoomOutSequence);
+        GameManager.events.RemoveEvent(GameEvents.EventType.OnCraftAttackStarted, PlayZoomOutSequence);
+    }
 
     private void OnDestroy()
     {
         shakeTween?.Kill();
         zoomKickSequence?.Kill();
+        zoomOutSequence?.Kill();
     }
 }

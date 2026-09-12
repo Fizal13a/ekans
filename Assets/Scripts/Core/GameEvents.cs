@@ -30,9 +30,11 @@ public class GameEvents
         OnResetCraftsCollected,
         OnCraftItemCollected,
         OnCraftAttackAdded,
+        OnCraftAttackStarted,
         OnCraftAttackCompleted,
         
         //chef
+        CanStartChefAttack,
         OnAttackStarted,
         OnAttackFinished,
         OnChecfGotAttacked,
@@ -51,6 +53,7 @@ public class GameEvents
         
         //FTUE
         OnSnakeLengthWarning,
+        OnCraftFTUE,
 
     }
 

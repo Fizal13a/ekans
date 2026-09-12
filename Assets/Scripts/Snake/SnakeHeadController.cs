@@ -85,7 +85,9 @@ public class SnakeHeadController : MonoBehaviour
         GameManager.events.AddEvent(GameEvents.EventType.OnLevelUp, OnLevelUp);
         GameManager.events.AddEvent(GameEvents.EventType.OnAteFood, OnAteFood);
         GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackTrigger, OnSpecialAttack);
+        GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackStarted, OnSpecialAttack);
         GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackCompleted, OnSpecialAttackFinished);
+        GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackCompleted, OnSpecialAttackFinished);
 
         snakeInputs.Enable();
         snakeInputs.Snake.Turn.performed += OnTurn;
@@ -325,14 +327,15 @@ public class SnakeHeadController : MonoBehaviour
             SnakeSegment segment = other.GetComponent<SnakeSegment>();
             if (segment != null)
             {
-                if (segment.IsAttached())
+                if (segment.IsAttached() && segment.FoodType != snakeBodyController.TargetFood)
                 {
                     if(canIgnoreBodySegment)
                         return;
                     
                     GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
+                    Debug.Log("Collided with body segment");
                 }
-                else
+                else if(!segment.IsAttached())
                 {
                     GameManager.events.TriggerEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, segment);
                     Destroy(other.gameObject);

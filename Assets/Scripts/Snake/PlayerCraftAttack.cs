@@ -77,9 +77,9 @@ public class PlayerCraftAttack : MonoBehaviour
 
         currentIndex = 0;
         craftedParticles.Play();
-        GameManager.events.TriggerEvent(GameEvents.EventType.OnCraftAttackCompleted);
+        GameManager.events.TriggerEvent(GameEvents.EventType.OnCraftAttackStarted);
         Debug.Log("Chef Attacked!");
-        GameManager.events.TriggerEvent(GameEvents.EventType.OnChecfGotAttacked, 15);
+        //GameManager.events.TriggerEvent(GameEvents.EventType.OnChecfGotAttacked, 15);
         // Trigger player attack
     }
 
