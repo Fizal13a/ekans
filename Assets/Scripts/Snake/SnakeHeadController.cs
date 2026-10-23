@@ -22,6 +22,20 @@ public class SnakeHeadController : MonoBehaviour
     bool canCollide = false;
     bool isGameStarted = false;
     
+    [Header("Gravity")]
+    [SerializeField] private float gravity = -9.81f;
+    [SerializeField] private float gravityRampDuration = 0.6f; // seconds to go from X to Y
+    [SerializeField] private AnimationCurve gravityCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField] private float groundCheckDistance = 0.2f;
+    [SerializeField] private float gravityIncreaseSpeed = 10f;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private float airControl = 0.5f;
+
+    private float gravityProgress; // 0 → 1
+    private float fallTime;
+    private bool wasGrounded;
+    private Vector3 airMomentum;
+    
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 6f;
     [SerializeField] private float rotationSpeed = 15f;
@@ -58,6 +72,8 @@ public class SnakeHeadController : MonoBehaviour
     [SerializeField] private Ease headFallEase = Ease.OutBounce;
 
     private float turnInput;
+    private float verticalVelocity;
+    private float currentGravity;
     
     private CharacterController controller;
 
@@ -178,7 +194,8 @@ public class SnakeHeadController : MonoBehaviour
     private void Update()
     {
         if(isGameOver || !isGameStarted || !canMove) return;
-        
+
+        HandleGravity();
         Rotate();
         MoveForward();
     }
@@ -186,6 +203,37 @@ public class SnakeHeadController : MonoBehaviour
     #endregion
 
     #region Actions
+
+    private void HandleGravity()
+    {
+        bool isGrounded = Physics.Raycast(
+            transform.position,
+            Vector3.down,
+            groundCheckDistance,
+            groundLayer
+        );
+
+        if (isGrounded)
+        {
+            gravityProgress = 0f;
+            currentGravity = 0f;
+
+            if (verticalVelocity < 0f)
+                verticalVelocity = -2f;
+        }
+        else
+        {
+            // Same total ramp time as your original MoveTowards: |gravity| / speed
+            float rampDuration = Mathf.Abs(gravity) / gravityIncreaseSpeed;
+            gravityProgress = Mathf.MoveTowards(gravityProgress, 1f, Time.deltaTime / rampDuration);
+
+            currentGravity = gravity * gravityCurve.Evaluate(gravityProgress);
+
+            verticalVelocity += currentGravity * Time.deltaTime;
+        }
+
+        controller.Move(Vector3.up * verticalVelocity * Time.deltaTime);
+    }
 
     private void Rotate()
     {
