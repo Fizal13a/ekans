@@ -7,13 +7,13 @@ public class CameraController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Transform target;
-    [SerializeField] private SnakeBodyController snake;
 
     [Header("Follow")]
     [SerializeField] private Vector3 offset = new(0, 15, -12);
     [SerializeField] private float followSmoothTime = 0.2f;
 
     [Header("Zoom")]
+    [SerializeField] private float currentSnakeLength = 5f;
     [SerializeField] private float minHeight = 15f;
     [SerializeField] private float maxHeight = 30f;
     [SerializeField] private int minSnakeLength = 5;
@@ -62,7 +62,7 @@ public class CameraController : MonoBehaviour
 
     private void Start()
     {
-        if (target == null || snake == null)
+        if (target == null)
         {
             Debug.LogError($"{nameof(CameraController)} is missing required references.");
             enabled = false;
@@ -80,6 +80,7 @@ public class CameraController : MonoBehaviour
         GameManager.events.AddEvent(GameEvents.EventType.OnLevelUp, ShakeOnLevelUp);
         GameManager.events.AddEvent(GameEvents.EventType.OnChefAttackRebound, PlayZoomOutSequence);
         GameManager.events.AddEvent(GameEvents.EventType.OnCraftAttackStarted, PlayZoomOutSequence);
+        GameManager.events.AddEvent<int>(GameEvents.EventType.OnSnakeLengthChanged, ChangeSnakeLength);
     }
 
     private void LateUpdate()
@@ -114,12 +115,18 @@ public class CameraController : MonoBehaviour
     /// <summary>
     /// Zooms out smoothly as the snake grows to keep more of the gameplay visible.
     /// </summary>
+
+    private void ChangeSnakeLength(int newLength)
+    {
+        currentSnakeLength = newLength;
+    }
+     
     private void UpdateZoom()
     {
         float t = Mathf.InverseLerp(
             minSnakeLength,
             maxSnakeLength,
-            snake.Length);
+            currentSnakeLength);
 
         float targetHeight = Mathf.Lerp(
             minHeight,

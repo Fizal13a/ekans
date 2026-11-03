@@ -105,7 +105,7 @@ public class FTUEController : MonoBehaviour
             if (!hasShownEatFollowing)
             {
                 ShowFTUE(eatFollowingMessage, ref hasShownEatFollowing);
-                foodSpawner.StopHighlights();
+                //foodSpawner.StopHighlights();
             }
         }
         else

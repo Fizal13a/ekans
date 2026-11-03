@@ -36,10 +36,6 @@ public struct LevelUpData
 public class SnakeBodyController : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private CameraController cameraController;
-    [SerializeField] private FoodSpawner foodSpawner;
-    [SerializeField] private SnakeHeadController snakeHeadController;
-    [SerializeField] private UIManager uimanager;
     [SerializeField] private Transform head;
     [SerializeField] private Transform bodyRoot;
 
@@ -60,6 +56,8 @@ public class SnakeBodyController : MonoBehaviour
     [Header("Snake Stats")]
     private int level = 1;
     [SerializeField] private int maxBodyLength = 50;
+    private bool canIgnoreBodySegment;
+    private FoodType lastTarget;
     public int MaxBodyLength => maxBodyLength;
     
     public FoodType TargetFood
@@ -108,12 +106,14 @@ public class SnakeBodyController : MonoBehaviour
     
     private void OnEnable()
     {
-       GameManager.events.AddEvent(GameEvents.EventType.OnGameStart, Initialize);
-       GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
+        GameManager.events.TriggerEvent<FoodType>(GameEvents.EventType.OnSnakeInitialized, TargetFood);
+        GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, OnNewFoodAte);
        GameManager.events.AddEvent(GameEvents.EventType.OnGameOver, TriggerGameOver);
        GameManager.events.AddEvent<ChaosType>(GameEvents.EventType.OnPowerUpSelected, OnPowerUpSelected);
        GameManager.events.AddEvent(GameEvents.EventType.OnSpecialAttackCompleted, SpawnStartingSnake);
        GameManager.events.AddEvent(GameEvents.EventType.OnChefMidHealthReduced, StartAutoSpawn);
+       GameManager.events.AddEvent<SnakeSegment>(GameEvents.EventType.OnHeadTouchedFood, OnHeadTouchedFood);
+       GameManager.events.AddEvent(GameEvents.EventType.OnPowerUpCompleted, () => canIgnoreBodySegment = false);
     }
 
     private void Initialize()
@@ -341,6 +341,8 @@ public class SnakeBodyController : MonoBehaviour
             Debug.Log("Food count: " + segments.Count);
             GameManager.events.TriggerEvent(GameEvents.EventType.OnLengthZero);
         }
+
+        NotifyTargetFood();
     }
     
     //ANIMATE
@@ -373,6 +375,20 @@ public class SnakeBodyController : MonoBehaviour
     #endregion
 
     #region Actions
+    
+    private void OnHeadTouchedFood(SnakeSegment segment)
+    {
+        if (gameOver) return;
+
+        if (segment.IsAttached())
+        {
+            if (segment.FoodType != TargetFood && !canIgnoreBodySegment)
+                GameManager.events.TriggerEvent(GameEvents.EventType.OnGameOver);
+            return;
+        }
+
+        GameManager.events.TriggerEvent<SnakeSegment>(GameEvents.EventType.OnAteFood, segment);
+    }
 
     private void OnNewFoodAte(SnakeSegment segment)
     {
@@ -385,11 +401,13 @@ public class SnakeBodyController : MonoBehaviour
             RemoveSegment();
             GameManager.events.TriggerEvent(GameEvents.EventType.OnAteRightFood, this);
             GameManager.events.TriggerEvent(GameEvents.EventType.CanStartChefAttack);
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnSnakeLengthChanged, Length);
         }
         else
         {
             AddEatenSegment(segment);
             GameManager.events.TriggerEvent(GameEvents.EventType.OnAteWrongFood);
+            GameManager.events.TriggerEvent(GameEvents.EventType.OnSnakeLengthChanged, Length);
         }
     }
 
@@ -424,6 +442,15 @@ public class SnakeBodyController : MonoBehaviour
             Debug.Log("Level Up");
         }
     }
+    
+    private void NotifyTargetFood()
+    {
+        if (segments.Count == 0) return;
+        FoodType current = segments[0].FoodType;
+        if (current == lastTarget) return;
+        lastTarget = current;
+        GameManager.events.TriggerEvent<FoodType>(GameEvents.EventType.OnTargetFoodChanged, current);
+    }
 
     #endregion
 
@@ -444,6 +471,9 @@ public class SnakeBodyController : MonoBehaviour
                 break;
             case ChaosType.Minus10:
                 RemoveSegments(10);
+                break;
+            case ChaosType.PassThrough:
+                canIgnoreBodySegment = true;
                 break;
         }
     }

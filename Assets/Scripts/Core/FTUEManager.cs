@@ -113,7 +113,7 @@ public class FTUEManager : MonoBehaviour
         isShowingTutorial = true;
         GameManager.events.TriggerEvent<bool>(GameEvents.EventType.OnFTUEStarted, true);
         
-        foodSpawner.StopHighlights();
+        //foodSpawner.StopHighlights();
         StartCoroutine(EnableContinueMessage(firstFoodTut.transform.GetChild(2).gameObject));
     }
     
